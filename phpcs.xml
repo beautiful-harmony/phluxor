@@ -10,25 +10,5 @@
     <arg value="nps"/>
     <file>src/Phluxor</file>
     <file>tests</file>
-    <!-- PSR12 -->
-    <rule ref="PSR12"/>
-    <rule ref="SlevomatCodingStandard.TypeHints.PropertyTypeHint.MissingNativeTypeHint">
-        <include-pattern>tests/*</include-pattern>
-    </rule>
-    <rule ref="SlevomatCodingStandard.Classes.PropertySpacing">
-        <properties>
-            <property name="minLinesCountBeforeWithComment" value="1"/>
-            <property name="maxLinesCountBeforeWithComment" value="1"/>
-            <property name="maxLinesCountBeforeWithoutComment" value="0"/>
-        </properties>
-    </rule>
-    <rule ref="Squiz.Arrays.ArrayDeclaration.NoCommaAfterLast">
-        <exclude name="Squiz.Arrays.ArrayDeclaration.CloseBraceNotAligned"/>
-        <exclude name="Squiz.Arrays.ArrayDeclaration.KeyNotAligned"/>
-        <exclude name="Squiz.Arrays.ArrayDeclaration.MultiLineNotAllowed"/>
-        <exclude name="Squiz.Arrays.ArrayDeclaration.NoSpaceAfterComma"/>
-        <exclude name="Squiz.Arrays.ArrayDeclaration.SingleLineNotAllowed"/>
-        <exclude name="Squiz.Arrays.ArrayDeclaration.ValueNoNewline"/>
-        <exclude name="Squiz.Arrays.ArrayDeclaration.ValueNotAligned"/>
-    </rule>
+    <rule ref="Doctrine"/>
 </ruleset>
