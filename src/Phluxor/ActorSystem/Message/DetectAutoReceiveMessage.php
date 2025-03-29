@@ -16,7 +16,7 @@ final class DetectAutoReceiveMessage implements DetectMessageInterface
     ];
 
     public function __construct(
-        private readonly mixed $message
+        private readonly mixed $message,
     ) {
     }
 
@@ -27,6 +27,7 @@ final class DetectAutoReceiveMessage implements DetectMessageInterface
                 return true;
             }
         }
+
         return false;
     }
 }

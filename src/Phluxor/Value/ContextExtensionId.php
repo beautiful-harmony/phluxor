@@ -8,15 +8,11 @@ use Swoole\Atomic;
 
 final class ContextExtensionId
 {
-    /** @var int */
     private int $id;
 
-    /**
-     * @param int $value
-     */
     public function __construct(int $value = 1)
     {
-        $id = new Atomic($value);
+        $id       = new Atomic($value);
         $this->id = $id->add();
     }
 

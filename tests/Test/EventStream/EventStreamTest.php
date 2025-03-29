@@ -11,8 +11,8 @@ class EventStreamTest extends TestCase
 {
     public function testSubscribe(): void
     {
-        $es = new EventStream();
-        $sub = $es->subscribe(function (mixed $event) {
+        $es  = new EventStream();
+        $sub = $es->subscribe(static function (mixed $event): void {
         });
         $this->assertNotNull($sub);
         $this->assertEquals(1, $es->length());
@@ -20,13 +20,13 @@ class EventStreamTest extends TestCase
 
     public function testUnsubscribe(): void
     {
-        $es = new EventStream();
-        $c1 = 0;
-        $c2 = 0;
-        $sub1 = $es->subscribe(function (mixed $_) use (&$c1) {
+        $es   = new EventStream();
+        $c1   = 0;
+        $c2   = 0;
+        $sub1 = $es->subscribe(static function (mixed $_) use (&$c1): void {
             $c1++;
         });
-        $sub2 = $es->subscribe(function (mixed $_) use (&$c2) {
+        $sub2 = $es->subscribe(static function (mixed $_) use (&$c2): void {
             $c2++;
         });
         $this->assertEquals(2, $es->length());
@@ -47,8 +47,8 @@ class EventStreamTest extends TestCase
     public function testPublish(): void
     {
         $es = new EventStream();
-        $v = 0;
-        $es->subscribe(function (mixed $m) use (&$v) {
+        $v  = 0;
+        $es->subscribe(static function (mixed $m) use (&$v): void {
             $v = $m;
         });
         $es->publish(1);
@@ -59,43 +59,43 @@ class EventStreamTest extends TestCase
 
     public function testSubscribeWithPredicateIsCalled(): void
     {
-        $es = new EventStream();
+        $es     = new EventStream();
         $called = false;
         $es->subscribeWithPredicate(
-            function (mixed $_) use (&$called) {
+            static function (mixed $_) use (&$called): void {
                 $called = true;
             },
-            function (mixed $m): bool {
+            static function (mixed $m): bool {
                 return true;
-            }
+            },
         );
-        $es->publish("");
+        $es->publish('');
         $this->assertTrue($called);
     }
 
     public function testSubscribeWithPredicateIsNotCalled(): void
     {
-        $es = new EventStream();
+        $es     = new EventStream();
         $called = false;
         $es->subscribeWithPredicate(
-            function (mixed $_) use (&$called) {
+            static function (mixed $_) use (&$called): void {
                 $called = true;
             },
-            function (mixed $m): bool {
+            static function (mixed $m): bool {
                 return false;
-            }
+            },
         );
-        $es->publish("");
+        $es->publish('');
         $this->assertFalse($called);
     }
 
     public function testBenchmarkEventStream(): void
     {
-        $es = new EventStream();
+        $es   = new EventStream();
         $subs = [];
         for ($i = 0; $i < 1000; $i++) {
             for ($j = 0; $j < 10; $j++) {
-                $sub = $es->subscribe(function (mixed $evt) use ($i) {
+                $sub      = $es->subscribe(function (mixed $evt) use ($i): void {
                     $this->assertEquals($i, $evt);
                 });
                 $subs[$j] = $sub;

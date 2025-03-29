@@ -8,15 +8,12 @@ use Phluxor\ActorSystem;
 
 readonly class EventStreamProcess implements ProcessInterface
 {
-    /**
-     * @param ActorSystem $actorSystem
-     */
     public function __construct(
-        private ActorSystem $actorSystem
+        private ActorSystem $actorSystem,
     ) {
     }
 
-    public function sendUserMessage(?Ref $pid, mixed $message): void
+    public function sendUserMessage(Ref|null $pid, mixed $message): void
     {
         $msg = ActorSystem\Message\MessageEnvelope::unwrapEnvelope($message);
         $this->actorSystem->getEventStream()?->publish($msg['message']);

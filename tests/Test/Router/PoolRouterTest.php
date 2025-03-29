@@ -18,16 +18,16 @@ class PoolRouterTest extends TestCase
 {
     public function testBroadcastGroupPoolCreatesRoutees(): void
     {
-        run(function () {
-            go(function () {
+        run(function (): void {
+            go(function (): void {
                 $system = ActorSystem::create();
-                $props = PoolRouter::create(
+                $props  = PoolRouter::create(
                     3,
-                    ActorSystem\Props::withProducer(fn() => $this->noneActor())
+                    ActorSystem\Props::withProducer(fn () => $this->noneActor()),
                 );
                 $router = $system->root()->spawn($props);
                 $future = $system->root()->requestFuture($router, new GetRoutees(), 1000);
-                $v = $future->result()->value();
+                $v      = $future->result()->value();
                 $this->assertInstanceOf(Routees::class, $v);
                 $this->assertCount(3, $v->getPids());
             });

@@ -25,33 +25,30 @@ use Psr\Http\Client\ClientInterface;
 use Symfony\Component\HttpClient\HttpClient;
 use Symfony\Component\HttpClient\Psr18Client;
 
+use function array_merge;
+
 class HttpJsonMeterProvider implements ProviderInterface
 {
-    /**
-     * @var array<string, string>
-     */
+    /** @var array<string, string> */
     private array $resourceAttributes = [];
 
     /**
      * @param string $serviceName for example 'phluxor'
-     * @param string $url for example 'http://127.0.0.1:4318/v1/metrics'
+     * @param string $url         for example 'http://127.0.0.1:4318/v1/metrics'
      */
     public function __construct(
         private readonly string $serviceName,
-        private readonly string $url
+        private readonly string $url,
     ) {
     }
 
     /**
      * Add a resource attribute.
-     *
-     * @param string $key
-     * @param string $value
-     * @return self
      */
     public function addResourceAttribute(string $key, string $value): self
     {
         $this->resourceAttributes[$key] = $value;
+
         return $this;
     }
 
@@ -62,8 +59,8 @@ class HttpJsonMeterProvider implements ProviderInterface
                 array_merge([
                     ResourceAttributes::SERVICE_NAME => $this->serviceName,
                     ResourceAttributes::SERVICE_VERSION => '1.0.0',
-                ], $this->resourceAttributes)
-            )
+                ], $this->resourceAttributes),
+            ),
         );
     }
 
@@ -71,10 +68,10 @@ class HttpJsonMeterProvider implements ProviderInterface
     {
         // Use Swoole context storage
         Context::setStorage(new SwooleContextStorage(Context::storage()));
-        $transport = new PsrTransportFactory(
+        $transport     = new PsrTransportFactory(
             $this->transportClient(),
             Psr17FactoryDiscovery::findRequestFactory(),
-            Psr17FactoryDiscovery::findStreamFactory()
+            Psr17FactoryDiscovery::findStreamFactory(),
         );
         $meterProvider = MeterProvider::builder()
             ->addReader(
@@ -86,26 +83,25 @@ class HttpJsonMeterProvider implements ProviderInterface
                             [],
                             TransportFactoryInterface::COMPRESSION_GZIP,
                         ),
-                        Temporality::DELTA
-                    )
-                )
+                        Temporality::DELTA,
+                    ),
+                ),
             )
             ->setResource($this->resource())
             ->build();
         Globals::registerInitializer(
-            fn(Configurator $configurator) => $configurator->withMeterProvider($meterProvider)
+            static fn (Configurator $configurator) => $configurator->withMeterProvider($meterProvider),
         );
         Sdk::builder()
             ->setMeterProvider($meterProvider)
             ->setAutoShutdown(true)
             ->buildAndRegisterGlobal();
+
         return $meterProvider;
     }
 
     private function transportClient(): ClientInterface
     {
-        return new Psr18Client(HttpClient::create([
-            'timeout' => 90.0,
-        ]));
+        return new Psr18Client(HttpClient::create(['timeout' => 90.0]));
     }
 }

@@ -7,7 +7,7 @@ namespace Phluxor\ActorSystem\Message;
 final readonly class MessageBatch implements MessageBatchInterface
 {
     public function __construct(
-        private mixed $messages
+        private mixed $messages,
     ) {
     }
 

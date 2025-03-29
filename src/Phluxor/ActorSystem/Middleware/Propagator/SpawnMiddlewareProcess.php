@@ -18,51 +18,52 @@ use Phluxor\ActorSystem\SpawnResult;
 readonly class SpawnMiddlewareProcess implements SpawnFunctionInterface
 {
     /**
-     * @param Closure|SpawnFunctionInterface $next
-     * @param SpawnMiddlewareInterface[] $spawnMiddleware
-     * @param SenderMiddlewareInterface[] $senderMiddleware
+     * @param SpawnMiddlewareInterface[]    $spawnMiddleware
+     * @param SenderMiddlewareInterface[]   $senderMiddleware
      * @param ReceiverMiddlewareInterface[] $receiverMiddleware
-     * @param ContextDecoratorInterface[] $contextDecorators
+     * @param ContextDecoratorInterface[]   $contextDecorators
      */
     public function __construct(
         private Closure|SpawnFunctionInterface $next,
         private array $spawnMiddleware = [],
         private array $senderMiddleware = [],
         private array $receiverMiddleware = [],
-        private array $contextDecorators = []
+        private array $contextDecorators = [],
     ) {
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public function __invoke(
         ActorSystem $actorSystem,
         string $id,
         Props $props,
-        Context\SpawnerInterface $parentContext
+        Context\SpawnerInterface $parentContext,
     ): SpawnResult {
-        if (!empty($this->spawnMiddleware)) {
+        if (! empty($this->spawnMiddleware)) {
             $props = $props->configure(
-                Props::withSpawnMiddleware(...$this->spawnMiddleware)
+                Props::withSpawnMiddleware(...$this->spawnMiddleware),
             );
         }
-        if (!empty($this->senderMiddleware)) {
+
+        if (! empty($this->senderMiddleware)) {
             $props = $props->configure(
-                Props::withSenderMiddleware(...$this->senderMiddleware)
+                Props::withSenderMiddleware(...$this->senderMiddleware),
             );
         }
-        if (!empty($this->receiverMiddleware)) {
+
+        if (! empty($this->receiverMiddleware)) {
             $props = $props->configure(
-                Props::withReceiverMiddleware(...$this->receiverMiddleware)
+                Props::withReceiverMiddleware(...$this->receiverMiddleware),
             );
         }
-        if (!empty($this->contextDecorators)) {
+
+        if (! empty($this->contextDecorators)) {
             $props = $props->configure(
-                Props::withContextDecorator(...$this->contextDecorators)
+                Props::withContextDecorator(...$this->contextDecorators),
             );
         }
+
         $next = $this->next;
+
         return $next($actorSystem, $id, $props, $parentContext);
     }
 }

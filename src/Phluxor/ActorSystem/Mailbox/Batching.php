@@ -14,7 +14,7 @@ class Batching implements MailboxProducerInterface
     public function __construct(
         private readonly int $batchSize = 100,
         private readonly int $queueSize = 10,
-        MailboxMiddlewareInterface ...$mailboxMiddleware
+        MailboxMiddlewareInterface ...$mailboxMiddleware,
     ) {
         $this->mailboxMiddleware = $mailboxMiddleware;
     }
@@ -25,7 +25,7 @@ class Batching implements MailboxProducerInterface
             new UnboundedMailboxQueue(new RingBufferQueue($this->queueSize)),
             new UnboundedMailboxQueue(new RingBufferQueue($this->queueSize)),
             $this->batchSize,
-            $this->mailboxMiddleware
+            $this->mailboxMiddleware,
         );
     }
 }

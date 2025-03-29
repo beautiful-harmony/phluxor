@@ -6,52 +6,39 @@ namespace Phluxor\ActorSystem\Message;
 
 use Phluxor\ActorSystem\ReadonlyMessageHeaderInterface;
 
-use function count;
 use function array_keys;
+use function count;
 
 class MessageHeader implements ReadonlyMessageHeaderInterface
 {
-    /**
-     * @param string[] $header
-     */
+    /** @param string[] $header */
     public function __construct(
-        private array $header = []
+        private array $header = [],
     ) {
     }
 
-    public function get(string $key): ?string
+    public function get(string $key): string|null
     {
         return $this->header[$key] ?? null;
     }
 
-    /**
-     * @param string $key
-     * @param string $value
-     */
     public function set(string $key, string $value): void
     {
         $this->header[$key] = $value;
     }
 
-    /**
-     * @return string[]
-     */
+    /** @return string[] */
     public function keys(): array
     {
         return array_keys($this->header);
     }
 
-    /**
-     * @return int
-     */
     public function length(): int
     {
         return count($this->header);
     }
 
-    /**
-     * @return string[]
-     */
+    /** @return string[] */
     public function toMap(): array
     {
         return $this->header;

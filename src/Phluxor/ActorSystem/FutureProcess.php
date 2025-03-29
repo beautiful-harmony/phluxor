@@ -16,21 +16,15 @@ readonly class FutureProcess implements ProcessInterface
 {
     use MetricsSystemTrait;
 
-    /**
-     * @param Future $future
-     */
     public function __construct(
-        private Future $future
+        private Future $future,
     ) {
     }
 
     /**
      * sendUserMessage sends a message asynchronously to the given PID
-     * @param Ref|null $pid
-     * @param mixed $message
-     * @return void
      */
-    public function sendUserMessage(?Ref $pid, mixed $message): void
+    public function sendUserMessage(Ref|null $pid, mixed $message): void
     {
         $this->instrument();
         $msg = MessageEnvelope::unwrapEnvelope($message);
@@ -38,14 +32,17 @@ readonly class FutureProcess implements ProcessInterface
         if ($res instanceof DeadLetterResponse) {
             $this->future->setResult(null);
             $this->future->setError(
-                new FutureTimeoutException("future: dead letter")
+                new FutureTimeoutException('future: dead letter'),
             );
         } else {
             $this->future->setResult($res);
         }
-        if ($pid != null) {
-            $this->stop($pid);
+
+        if ($pid === null) {
+            return;
         }
+
+        $this->stop($pid);
     }
 
     public function sendSystemMessage(Ref $pid, mixed $message): void
@@ -67,31 +64,37 @@ readonly class FutureProcess implements ProcessInterface
 
     private function instrument(): void
     {
-        $actorSystem = $this->future->getActorSystem();
+        $actorSystem   = $this->future->getActorSystem();
         $metricsSystem = $this->enabledMetricsSystem($actorSystem);
-        if ($metricsSystem) {
-            $instruments = $metricsSystem->metrics()->find(PhluxorMetrics::INTERNAL_ACTOR_METRICS);
-            if ($instruments instanceof ActorMetrics) {
-                if ($this->future->isError() === null) {
-                    $instruments->getFuturesCompletedCount()
-                        ->add(
-                            1,
-                            Attributes::create([
-                                'address' => $actorSystem->address(),
-                                'actor_ref' => (string)$this->future->pid(),
-                            ])
-                        );
-                    return;
-                }
-                $instruments->getFuturesTimedOutCount()
-                    ->add(
-                        1,
-                        Attributes::create([
-                            'address' => $actorSystem->address(),
-                            'actor_ref' => (string)$this->future->pid(),
-                        ])
-                    );
-            }
+        if (! $metricsSystem) {
+            return;
         }
+
+        $instruments = $metricsSystem->metrics()->find(PhluxorMetrics::INTERNAL_ACTOR_METRICS);
+        if (! ($instruments instanceof ActorMetrics)) {
+            return;
+        }
+
+        if ($this->future->isError() === null) {
+            $instruments->getFuturesCompletedCount()
+                ->add(
+                    1,
+                    Attributes::create([
+                        'address' => $actorSystem->address(),
+                        'actor_ref' => (string) $this->future->pid(),
+                    ]),
+                );
+
+            return;
+        }
+
+        $instruments->getFuturesTimedOutCount()
+            ->add(
+                1,
+                Attributes::create([
+                    'address' => $actorSystem->address(),
+                    'actor_ref' => (string) $this->future->pid(),
+                ]),
+            );
     }
 }

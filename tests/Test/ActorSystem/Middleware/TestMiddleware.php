@@ -13,7 +13,7 @@ class TestMiddleware implements SpawnMiddlewareInterface
 {
     public function __construct(
         private int &$spawnCounter,
-        private readonly Lock $lock
+        private readonly Lock $lock,
     ) {
     }
 

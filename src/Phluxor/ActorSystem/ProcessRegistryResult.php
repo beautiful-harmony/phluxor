@@ -8,7 +8,7 @@ readonly class ProcessRegistryResult
 {
     public function __construct(
         private ProcessInterface $process,
-        private bool $isProcess
+        private bool $isProcess,
     ) {
     }
 

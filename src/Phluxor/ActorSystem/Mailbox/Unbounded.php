@@ -13,7 +13,7 @@ class Unbounded implements MailboxProducerInterface
     private array $mailboxMiddleware = [];
 
     public function __construct(
-        MailboxMiddlewareInterface ...$mailboxMiddleware
+        MailboxMiddlewareInterface ...$mailboxMiddleware,
     ) {
         $this->mailboxMiddleware = $mailboxMiddleware;
     }
@@ -23,7 +23,7 @@ class Unbounded implements MailboxProducerInterface
         return new DefaultMailbox(
             new UnboundedMailboxQueue(new RingBufferQueue(10)),
             new MpscQueue(),
-            $this->mailboxMiddleware
+            $this->mailboxMiddleware,
         );
     }
 }

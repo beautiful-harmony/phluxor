@@ -4,17 +4,18 @@ declare(strict_types=1);
 
 namespace Test\ActorSystem;
 
-use PHPUnit\Framework\TestCase;
 use Phluxor\ActorSystem;
-use Phluxor\ActorSystem\ProcessRegistryValue;
 use Phluxor\ActorSystem\DeadLetterProcess;
+use Phluxor\ActorSystem\ProcessRegistryValue;
+use PHPUnit\Framework\TestCase;
+use Swoole\Event;
 
 class ProcessRegistryValueTest extends TestCase
 {
-    public function testUint64ToId()
+    public function testUint64ToId(): void
     {
-        go(function () {
-            $case = [
+        go(function (): void {
+            $case     = [
                 0x0 => '$0',
                 0x1 => '$1',
                 0xf => '$f',
@@ -25,29 +26,29 @@ class ProcessRegistryValueTest extends TestCase
                 $this->assertSame($value, $registry->uint64ToId($key));
             }
         });
-        \Swoole\Event::wait();
+        Event::wait();
     }
 
     public function testShouldReturnNextId(): void
     {
-        go(function () {
+        go(function (): void {
             $registry = new ProcessRegistryValue(new ActorSystem());
             $this->assertSame('$1', $registry->nextId());
             $this->assertSame('$2', $registry->nextId());
         });
-        \Swoole\Event::wait();
+        Event::wait();
     }
 
     public function testShouldReturnLocalDeadLetter(): void
     {
-        go(function () {
+        go(function (): void {
             $registry = new ProcessRegistryValue(ActorSystem::create());
             $this->assertFalse($registry->getLocal('$1')->isProcess());
             $this->assertInstanceOf(
                 DeadLetterProcess::class,
-                $registry->getLocal('$1')->getProcess()
+                $registry->getLocal('$1')->getProcess(),
             );
         });
-        \Swoole\Event::wait();
+        Event::wait();
     }
 }

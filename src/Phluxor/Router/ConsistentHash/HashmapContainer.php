@@ -11,11 +11,8 @@ class HashmapContainer
 {
     private array $routeeMap = [];
 
-    /**
-     * @param ?Continuum $hashring
-     */
     public function __construct(
-        private ?Continuum $hashring = null
+        private Continuum|null $hashring = null,
     ) {
     }
 
@@ -29,21 +26,17 @@ class HashmapContainer
         $this->hashring = $hashring;
     }
 
-    /**
-     * @return Continuum
-     * @throws ConsistentHashException
-     */
+    /** @throws ConsistentHashException */
     public function Hashring(): Continuum
     {
         if ($this->hashring === null) {
             throw new ConsistentHashException('Hashring is not set');
         }
+
         return $this->hashring;
     }
 
-    /**
-     * @return array{string, Ref}
-     */
+    /** @return array{string, Ref} */
     public function getRouteeMap(): array
     {
         return $this->routeeMap;

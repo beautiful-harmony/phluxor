@@ -9,11 +9,6 @@ use Phluxor\ActorSystem\Ref;
 
 final readonly class SupervisorEvent
 {
-    /**
-     * @param Ref $child
-     * @param mixed $reason
-     * @param Directive $directive
-     */
     public function __construct(
         private Ref $child,
         private mixed $reason,

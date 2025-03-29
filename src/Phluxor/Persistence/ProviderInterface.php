@@ -9,8 +9,5 @@ namespace Phluxor\Persistence;
  */
 interface ProviderInterface
 {
-    /**
-     * @return ProviderStateInterface
-     */
     public function getState(): ProviderStateInterface;
 }

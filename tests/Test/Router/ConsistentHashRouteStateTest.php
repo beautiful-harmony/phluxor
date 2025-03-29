@@ -18,6 +18,7 @@ use Test\ProcessTrait;
 use Test\Router\ConsistentHash\HashMessage;
 use Test\Router\ConsistentHash\ReceiveCount;
 
+use function sleep;
 use function Swoole\Coroutine\run;
 
 class ConsistentHashRouteStateTest extends TestCase
@@ -26,29 +27,31 @@ class ConsistentHashRouteStateTest extends TestCase
 
     public function testShouldAlwaysGoToSameRoutee(): void
     {
-        run(function () {
-            go(function () {
-                $system = ActorSystem::create();
+        run(function (): void {
+            go(function (): void {
+                $system  = ActorSystem::create();
                 $routees = [];
                 for ($i = 1; $i <= 3; $i++) {
                     $routees[] = $system->root()->spawnNamed(
-                        ActorSystem\Props::fromProducer(fn() => $this->myActor()),
-                        'routee' . $i
+                        ActorSystem\Props::fromProducer(fn () => $this->myActor()),
+                        'routee' . $i,
                     )->getRef();
                 }
+
                 $g = $system->root()->spawn(GroupRouter::create(...$routees));
                 for ($i = 0; $i < 10; $i++) {
                     $system->root()->send($g, new HashMessage('message1'));
                 }
+
                 $cases = [
                     'routee1' => 0,
                     'routee2' => 0,
                     'routee3' => 10,
                 ];
                 foreach ($cases as $routee => $count) {
-                    $ref = new ActorSystem\Ref(new ActorSystem\ProtoBuf\Pid([
+                    $ref          = new ActorSystem\Ref(new ActorSystem\ProtoBuf\Pid([
                         'id' => $routee,
-                        'address' => ActorSystem::LOCAL_ADDRESS
+                        'address' => ActorSystem::LOCAL_ADDRESS,
                     ]));
                     $receiveCount = $system->root()->requestFuture($ref, new ReceiveCount(), 2000);
                     $this->assertSame($count, $receiveCount->result()->value());
@@ -59,26 +62,27 @@ class ConsistentHashRouteStateTest extends TestCase
 
     public function testShouldRouteesCanBeAdded(): void
     {
-        run(function () {
-            go(function () {
-                $system = ActorSystem::create();
+        run(function (): void {
+            go(function (): void {
+                $system  = ActorSystem::create();
                 $routees = [];
                 for ($i = 1; $i <= 3; $i++) {
                     $routees[] = $system->root()->spawnNamed(
-                        ActorSystem\Props::fromProducer(fn() => $this->myActor()),
-                        'routee' . $i
+                        ActorSystem\Props::fromProducer(fn () => $this->myActor()),
+                        'routee' . $i,
                     )->getRef();
                 }
+
                 $g = $system->root()->spawn(GroupRouter::create(...$routees));
 
                 $routee4 = $system->root()->spawnNamed(
-                    ActorSystem\Props::fromProducer(fn() => $this->myActor()),
-                    'routee4'
+                    ActorSystem\Props::fromProducer(fn () => $this->myActor()),
+                    'routee4',
                 );
                 $system->root()->send($g, new AddRoutee(['pid' => $routee4->getRef()->protobufPid()]));
                 sleep(1);
                 $future = $system->root()->requestFuture($g, new GetRoutees(), 1000);
-                $v = $future->result()->value();
+                $v      = $future->result()->value();
                 $this->assertInstanceOf(Routees::class, $v);
                 $this->assertCount(4, $v->getPids());
             });
@@ -87,26 +91,27 @@ class ConsistentHashRouteStateTest extends TestCase
 
     public function testShouldRouteesCanBeRemoved(): void
     {
-        run(function () {
-            go(function () {
-                $system = ActorSystem::create();
+        run(function (): void {
+            go(function (): void {
+                $system  = ActorSystem::create();
                 $routees = [];
                 for ($i = 1; $i <= 3; $i++) {
                     $routees[] = $system->root()->spawnNamed(
-                        ActorSystem\Props::fromProducer(fn() => $this->myActor()),
-                        'routee' . $i
+                        ActorSystem\Props::fromProducer(fn () => $this->myActor()),
+                        'routee' . $i,
                     )->getRef();
                 }
+
                 $g = $system->root()->spawn(GroupRouter::create(...$routees));
                 $system->root()->send($g, new RemoveRoutee([
                     'pid' => new ActorSystem\ProtoBuf\Pid([
                         'id' => 'routee3',
-                        'address' => ActorSystem::LOCAL_ADDRESS
-                    ])
+                        'address' => ActorSystem::LOCAL_ADDRESS,
+                    ]),
                 ]));
                 sleep(1);
                 $future = $system->root()->requestFuture($g, new GetRoutees(), 1000);
-                $v = $future->result()->value();
+                $v      = $future->result()->value();
                 $this->assertInstanceOf(Routees::class, $v);
                 $this->assertCount(2, $v->getPids());
             });
@@ -115,27 +120,29 @@ class ConsistentHashRouteStateTest extends TestCase
 
     public function testShouldAlwaysGoToSameRouteeEvenWhenNewRouteeAdded(): void
     {
-        run(function () {
-            go(function () {
-                $system = ActorSystem::create();
+        run(function (): void {
+            go(function (): void {
+                $system  = ActorSystem::create();
                 $routees = [];
                 for ($i = 1; $i <= 3; $i++) {
                     $routees[] = $system->root()->spawnNamed(
-                        ActorSystem\Props::fromProducer(fn() => $this->myActor()),
-                        'routee' . $i
+                        ActorSystem\Props::fromProducer(fn () => $this->myActor()),
+                        'routee' . $i,
                     )->getRef();
                 }
+
                 $g = $system->root()->spawn(GroupRouter::create(...$routees));
 
                 $routee4 = $system->root()->spawnNamed(
-                    ActorSystem\Props::fromProducer(fn() => $this->myActor()),
-                    'routee4'
+                    ActorSystem\Props::fromProducer(fn () => $this->myActor()),
+                    'routee4',
                 );
                 $system->root()->send($g, new AddRoutee(['pid' => $routee4->getRef()->protobufPid()]));
                 sleep(1);
                 for ($i = 0; $i < 10; $i++) {
                     $system->root()->send($g, new HashMessage('message1'));
                 }
+
                 $cases = [
                     'routee1' => 0,
                     'routee2' => 0,
@@ -144,9 +151,9 @@ class ConsistentHashRouteStateTest extends TestCase
                 ];
                 $system->root()->send($g, new HashMessage('message4'));
                 foreach ($cases as $routee => $count) {
-                    $ref = new ActorSystem\Ref(new ActorSystem\ProtoBuf\Pid([
+                    $ref          = new ActorSystem\Ref(new ActorSystem\ProtoBuf\Pid([
                         'id' => $routee,
-                        'address' => ActorSystem::LOCAL_ADDRESS
+                        'address' => ActorSystem::LOCAL_ADDRESS,
                     ]));
                     $receiveCount = $system->root()->requestFuture($ref, new ReceiveCount(), 2000);
                     $this->assertSame($count, $receiveCount->result()->value());
@@ -157,16 +164,17 @@ class ConsistentHashRouteStateTest extends TestCase
 
     public function testShouldMessageIsReassignedWhenRouteeRemoved(): void
     {
-        run(function () {
-            go(function () {
-                $system = ActorSystem::create();
+        run(function (): void {
+            go(function (): void {
+                $system  = ActorSystem::create();
                 $routees = [];
                 for ($i = 1; $i <= 3; $i++) {
                     $routees[] = $system->root()->spawnNamed(
-                        ActorSystem\Props::fromProducer(fn() => $this->myActor()),
-                        'routee' . $i
+                        ActorSystem\Props::fromProducer(fn () => $this->myActor()),
+                        'routee' . $i,
                     )->getRef();
                 }
+
                 $g = $system->root()->spawn(GroupRouter::create(...$routees));
                 $system->root()->send($g, new HashMessage('message1'));
                 foreach (
@@ -176,9 +184,9 @@ class ConsistentHashRouteStateTest extends TestCase
                         'routee3' => 1,
                     ] as $routee => $count
                 ) {
-                    $ref = new ActorSystem\Ref(new ActorSystem\ProtoBuf\Pid([
+                    $ref          = new ActorSystem\Ref(new ActorSystem\ProtoBuf\Pid([
                         'id' => $routee,
-                        'address' => ActorSystem::LOCAL_ADDRESS
+                        'address' => ActorSystem::LOCAL_ADDRESS,
                     ]));
                     $receiveCount = $system->root()->requestFuture($ref, new ReceiveCount(), 2000);
                     $this->assertSame($count, $receiveCount->result()->value(), "Routee $routee");
@@ -187,8 +195,8 @@ class ConsistentHashRouteStateTest extends TestCase
                 $system->root()->send($g, new RemoveRoutee([
                     'pid' => new ActorSystem\ProtoBuf\Pid([
                         'id' => 'routee3',
-                        'address' => ActorSystem::LOCAL_ADDRESS
-                    ])
+                        'address' => ActorSystem::LOCAL_ADDRESS,
+                    ]),
                 ]));
                 sleep(1);
                 $system->root()->send($g, new HashMessage('message1'));
@@ -197,9 +205,9 @@ class ConsistentHashRouteStateTest extends TestCase
                     'routee2' => 1,
                 ];
                 foreach ($cases as $routee => $count) {
-                    $ref = new ActorSystem\Ref(new ActorSystem\ProtoBuf\Pid([
+                    $ref          = new ActorSystem\Ref(new ActorSystem\ProtoBuf\Pid([
                         'id' => $routee,
-                        'address' => ActorSystem::LOCAL_ADDRESS
+                        'address' => ActorSystem::LOCAL_ADDRESS,
                     ]));
                     $receiveCount = $system->root()->requestFuture($ref, new ReceiveCount(), 2000);
                     $this->assertSame($count, $receiveCount->result()->value(), "Routee $routee");
@@ -210,16 +218,17 @@ class ConsistentHashRouteStateTest extends TestCase
 
     public function testAllRouteesReceiveRouterBroadcastMessages(): void
     {
-        run(function () {
-            go(function () {
-                $system = ActorSystem::create();
+        run(function (): void {
+            go(function (): void {
+                $system  = ActorSystem::create();
                 $routees = [];
                 for ($i = 1; $i <= 3; $i++) {
                     $routees[] = $system->root()->spawnNamed(
-                        ActorSystem\Props::fromProducer(fn() => $this->myActor()),
-                        'routee' . $i
+                        ActorSystem\Props::fromProducer(fn () => $this->myActor()),
+                        'routee' . $i,
                     )->getRef();
                 }
+
                 $g = $system->root()->spawn(GroupRouter::create(...$routees));
                 $system->root()->send($g, new Broadcast('message1'));
                 sleep(1);
@@ -229,9 +238,9 @@ class ConsistentHashRouteStateTest extends TestCase
                     'routee3' => 1,
                 ];
                 foreach ($cases as $routee => $count) {
-                    $ref = new ActorSystem\Ref(new ActorSystem\ProtoBuf\Pid([
+                    $ref          = new ActorSystem\Ref(new ActorSystem\ProtoBuf\Pid([
                         'id' => $routee,
-                        'address' => ActorSystem::LOCAL_ADDRESS
+                        'address' => ActorSystem::LOCAL_ADDRESS,
                     ]));
                     $receiveCount = $system->root()->requestFuture($ref, new ReceiveCount(), 2000);
                     $this->assertSame($count, $receiveCount->result()->value());
@@ -249,7 +258,7 @@ class ConsistentHashRouteStateTest extends TestCase
             {
                 $msg = $context->message();
                 switch (true) {
-                    case $msg == 'message1':
+                    case $msg === 'message1':
                     case $msg instanceof HashMessage:
                         $this->count++;
                         break;

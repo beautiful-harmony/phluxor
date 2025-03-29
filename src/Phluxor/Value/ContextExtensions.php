@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Phluxor\Value;
 
+use function array_fill;
+use function count;
+
 final class ContextExtensions
 {
     /** @var ExtensionInterface[] */
@@ -14,19 +17,11 @@ final class ContextExtensions
         $this->extensions = array_fill(0, 3, null);
     }
 
-    /**
-     * @param ContextExtensionID $id
-     * @return ExtensionInterface|null
-     */
-    public function get(ContextExtensionID $id): ?ExtensionInterface
+    public function get(ContextExtensionID $id): ExtensionInterface|null
     {
         return $this->extensions[$id->value()] ?? null;
     }
 
-    /**
-     * @param ExtensionInterface $extension
-     * @return void
-     */
     public function set(ExtensionInterface $extension): void
     {
         $id = $extension->extensionID()->value();
@@ -35,6 +30,7 @@ final class ContextExtensions
             $this->array_copy($this->extensions, $newExtensions, count($this->extensions));
             $this->extensions = $newExtensions;
         }
+
         $this->extensions[$id] = $extension;
     }
 

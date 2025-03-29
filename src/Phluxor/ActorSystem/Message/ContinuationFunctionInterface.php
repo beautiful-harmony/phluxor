@@ -6,8 +6,5 @@ namespace Phluxor\ActorSystem\Message;
 
 interface ContinuationFunctionInterface
 {
-    /**
-     * @return void
-     */
     public function __invoke(): void;
 }

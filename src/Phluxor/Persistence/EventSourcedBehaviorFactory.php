@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Phluxor\Persistence;
 
 use Closure;
@@ -11,33 +13,29 @@ use Phluxor\ActorSystem\Message\Started;
 
 readonly class EventSourcedBehaviorFactory implements ReceiverFunctionInterface
 {
-    /**
-     * @param ProviderInterface $provider
-     * @param Closure(ReceiverInterface|ContextInterface, MessageEnvelope): void|ReceiverFunctionInterface $next
-     */
+    /** @param Closure(ReceiverInterface|ContextInterface, MessageEnvelope): void|ReceiverFunctionInterface $next */
     public function __construct(
         private ProviderInterface $provider,
-        private Closure|ReceiverFunctionInterface $next
+        private Closure|ReceiverFunctionInterface $next,
     ) {
     }
 
-    /**
-     * @param ContextInterface|ReceiverInterface $context
-     * @param MessageEnvelope $messageEnvelope
-     * @return void
-     */
     public function __invoke(
         ContextInterface|ReceiverInterface $context,
-        MessageEnvelope $messageEnvelope
+        MessageEnvelope $messageEnvelope,
     ): void {
-        $msg = $messageEnvelope->getMessage();
+        $msg  = $messageEnvelope->getMessage();
         $next = $this->next;
         $next($context, $messageEnvelope);
-        if ($msg instanceof Started) {
-            $actor = $context->actor();
-            if ($actor instanceof PersistentInterface) {
-                $actor->init($this->provider, $context);
-            }
+        if (! ($msg instanceof Started)) {
+            return;
         }
+
+        $actor = $context->actor();
+        if (! ($actor instanceof PersistentInterface)) {
+            return;
+        }
+
+        $actor->init($this->provider, $context);
     }
 }

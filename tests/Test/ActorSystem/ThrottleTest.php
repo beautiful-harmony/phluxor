@@ -15,11 +15,11 @@ class ThrottleTest extends TestCase
 {
     public function testThrottle(): void
     {
-        run(function () {
-            go(function () {
+        run(function (): void {
+            go(function (): void {
                 $wg = new WaitGroup();
                 $wg->add();
-                $throttle = new Throttle(10, 1, function () use ($wg) {
+                $throttle = new Throttle(10, 1, static function () use ($wg): void {
                     $wg->done();
                 });
                 $throttle->shouldThrottle();
@@ -29,6 +29,7 @@ class ThrottleTest extends TestCase
                 for ($i = 0; $i < 8; $i++) {
                     $v = $throttle->shouldThrottle();
                 }
+
                 $this->assertEquals(Valve::Closing, $v);
                 $this->assertEquals(Valve::Closed, $throttle->shouldThrottle());
 

@@ -12,11 +12,8 @@ use Phluxor\ActorSystem\Message\ReceiverFunctionInterface;
 
 interface ReceiverMiddlewareInterface
 {
-    /**
-     * @param Closure(ReceiverInterface|ContextInterface, MessageEnvelope): void|ReceiverFunctionInterface $next
-     * @return ReceiverFunctionInterface
-     */
+    /** @param Closure(ReceiverInterface|ContextInterface, MessageEnvelope): void|ReceiverFunctionInterface $next */
     public function __invoke(
-        Closure|ReceiverFunctionInterface $next
+        Closure|ReceiverFunctionInterface $next,
     ): ReceiverFunctionInterface;
 }

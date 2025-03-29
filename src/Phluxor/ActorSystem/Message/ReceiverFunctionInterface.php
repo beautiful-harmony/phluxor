@@ -9,13 +9,8 @@ use Phluxor\ActorSystem\Context\ReceiverInterface;
 
 interface ReceiverFunctionInterface
 {
-    /**
-     * @param ReceiverInterface|ContextInterface $context
-     * @param MessageEnvelope $messageEnvelope
-     * @return void
-     */
     public function __invoke(
         ReceiverInterface|ContextInterface $context,
-        MessageEnvelope $messageEnvelope
+        MessageEnvelope $messageEnvelope,
     ): void;
 }

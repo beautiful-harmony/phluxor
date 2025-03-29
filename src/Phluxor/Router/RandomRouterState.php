@@ -15,7 +15,7 @@ class RandomRouterState implements StateInterface
 {
     public function __construct(
         private RefSet $routees = new RefSet(),
-        private null|ContextInterface|SenderInterface $sender = null
+        private ContextInterface|SenderInterface|null $sender = null,
     ) {
     }
 
@@ -25,6 +25,7 @@ class RandomRouterState implements StateInterface
         if ($ref === null) {
             throw new InvalidIndexException('Invalid route index, not found routee.');
         }
+
         $this->sender?->send($ref, $message);
     }
 

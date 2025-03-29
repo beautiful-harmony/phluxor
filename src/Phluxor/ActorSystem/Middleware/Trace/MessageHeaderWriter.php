@@ -10,12 +10,12 @@ use Phluxor\ActorSystem\Message\MessageHeader;
 readonly class MessageHeaderWriter implements PropagationSetterInterface
 {
     public function __construct(
-        private MessageHeader $header
+        private MessageHeader $header,
     ) {
     }
 
     /**
-     * {@inheritdoc}
+     * {@inheritDoc}
      */
     public function set(&$carrier, string $key, string $value): void
     {

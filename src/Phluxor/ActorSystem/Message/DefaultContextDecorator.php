@@ -8,10 +8,6 @@ use Phluxor\ActorSystem\Context\ContextInterface;
 
 class DefaultContextDecorator implements ContextDecoratorFunctionInterface
 {
-    /**
-     * @param ContextInterface $context
-     * @return ContextInterface
-     */
     public function __invoke(ContextInterface $context): ContextInterface
     {
         return $context;

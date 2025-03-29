@@ -9,9 +9,5 @@ use Psr\Log\LoggerInterface as PsrLoggerInterface;
 
 interface LoggerInterface
 {
-    /**
-     * @param ActorSystem $actorSystem
-     * @return PsrLoggerInterface
-     */
     public function __invoke(ActorSystem $actorSystem): PsrLoggerInterface;
 }

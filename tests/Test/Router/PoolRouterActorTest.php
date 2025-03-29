@@ -24,38 +24,38 @@ class PoolRouterActorTest extends TestCase
 
     public function testPoolRouterReceiveAddRoute(): void
     {
-        run(function () {
-            go(function () {
+        run(function (): void {
+            go(function (): void {
                 $system = ActorSystem::create();
-                $state = new TestRouterState($system, new ActorSystem\RefSet());
-                $a = new PoolRouterActor(
+                $state  = new TestRouterState($system, new ActorSystem\RefSet());
+                $a      = new PoolRouterActor(
                     ActorSystem\Props::fromFunction(
                         new ActorSystem\Message\ReceiveFunction(
-                            function (ActorSystem\Context\ContextInterface $context) {
+                            static function (ActorSystem\Context\ContextInterface $context): void {
                                 // none
-                            }
+                            },
                         ),
                     ),
                     new TestGroupRouter($system),
                     $state,
-                    new WaitGroup()
+                    new WaitGroup(),
                 );
-                $m = new MockContext();
-                $m->messageHandle(function () {
+                $m      = new MockContext();
+                $m->messageHandle(static function () {
                     return new AddRoutee([
                         'pid' => new ActorSystem\ProtoBuf\PID([
                             'address' => 'test',
-                            'id' => 1
-                        ])
+                            'id' => 1,
+                        ]),
                     ]);
                 });
                 $a->receive($m);
                 $routees = $state->getRoutees();
                 $this->assertTrue(
                     $routees->contains(new ActorSystem\Ref(new ActorSystem\ProtoBuf\PID([
-                    'address' => 'test',
-                    'id' => 1
-                    ])))
+                        'address' => 'test',
+                        'id' => 1,
+                    ]))),
                 );
             });
         });
@@ -63,35 +63,35 @@ class PoolRouterActorTest extends TestCase
 
     public function testPoolRouterReceiveAddRouteNoDuplicates(): void
     {
-        run(function () {
-            go(function () {
+        run(function (): void {
+            go(function (): void {
                 $system = ActorSystem::create();
-                $state = new TestRouterState($system, new ActorSystem\RefSet());
-                $a = new PoolRouterActor(
+                $state  = new TestRouterState($system, new ActorSystem\RefSet());
+                $a      = new PoolRouterActor(
                     ActorSystem\Props::fromFunction(
                         new ActorSystem\Message\ReceiveFunction(
-                            function (ActorSystem\Context\ContextInterface $context) {
+                            static function (ActorSystem\Context\ContextInterface $context): void {
                                 // none
-                            }
+                            },
                         ),
                     ),
                     new TestGroupRouter($system),
                     $state,
-                    new WaitGroup()
+                    new WaitGroup(),
                 );
-                $p = $system->newLocalAddress('p1');
-                $m = new MockContext();
-                $m->messageHandle(function () use ($p) {
+                $p      = $system->newLocalAddress('p1');
+                $m      = new MockContext();
+                $m->messageHandle(static function () use ($p) {
                     return new AddRoutee([
-                        'pid' => $p->protobufPid()
+                        'pid' => $p->protobufPid(),
                     ]);
                 });
                 $a->receive($m);
-                $m->messageHandle(function () {
+                $m->messageHandle(static function () {
                     return new GetRoutees();
                 });
                 $proceed = false;
-                $m->respondHandle(function ($response) use (&$proceed) {
+                $m->respondHandle(function ($response) use (&$proceed): void {
                     $this->assertInstanceOf(Routees::class, $response);
                     $proceed = true;
                     /** @var Routees  $response*/
@@ -105,52 +105,52 @@ class PoolRouterActorTest extends TestCase
 
     public function testPoolRouterReceiveRemoveRoute(): void
     {
-        run(function () {
-            go(function () {
+        run(function (): void {
+            go(function (): void {
                 $system = ActorSystem::create();
-                $state = new TestRouterState($system, new ActorSystem\RefSet());
-                $a = new PoolRouterActor(
+                $state  = new TestRouterState($system, new ActorSystem\RefSet());
+                $a      = new PoolRouterActor(
                     ActorSystem\Props::fromFunction(
                         new ActorSystem\Message\ReceiveFunction(
-                            function (ActorSystem\Context\ContextInterface $context) {
+                            static function (ActorSystem\Context\ContextInterface $context): void {
                                 // none
-                            }
+                            },
                         ),
                     ),
                     new TestGroupRouter($system),
                     $state,
-                    new WaitGroup()
+                    new WaitGroup(),
                 );
-                $p1 = $this->spawnMockProcess($system, 'p1');
-                $p = $system->newLocalAddress('p2');
-                $m = new MockContext();
-                $m->messageHandle(function () use ($p) {
+                $p1     = $this->spawnMockProcess($system, 'p1');
+                $p      = $system->newLocalAddress('p2');
+                $m      = new MockContext();
+                $m->messageHandle(static function () use ($p) {
                     return new AddRoutee([
-                        'pid' => $p->protobufPid()
+                        'pid' => $p->protobufPid(),
                     ]);
                 });
                 $a->receive($m);
-                $m->messageHandle(function () use ($p1) {
+                $m->messageHandle(static function () use ($p1) {
                     return new AddRoutee([
-                        'pid' => $p1['ref']->protobufPid()
+                        'pid' => $p1['ref']->protobufPid(),
                     ]);
                 });
                 $a->receive($m);
                 // remove p1
-                $m->messageHandle(function () use ($p1) {
+                $m->messageHandle(static function () use ($p1) {
                     return new RemoveRoutee([
-                        'pid' => $p1['ref']->protobufPid()
+                        'pid' => $p1['ref']->protobufPid(),
                     ]);
                 });
-                $m->sendHandle(function (?ActorSystem\Ref $ref, $message) use ($p1) {
+                $m->sendHandle(function (ActorSystem\Ref|null $ref, $message): void {
                     $this->assertInstanceOf(ActorSystem\ProtoBuf\PoisonPill::class, $message);
                 });
                 $a->receive($m);
-                $m->messageHandle(function () {
+                $m->messageHandle(static function () {
                     return new GetRoutees();
                 });
                 $proceed = false;
-                $m->respondHandle(function ($response) use (&$proceed) {
+                $m->respondHandle(function ($response) use (&$proceed): void {
                     $this->assertInstanceOf(Routees::class, $response);
                     $proceed = true;
                     /** @var Routees  $response*/
@@ -164,46 +164,46 @@ class PoolRouterActorTest extends TestCase
 
     public function testPoolRouterReceiveBroadcastMessage(): void
     {
-        run(function () {
-            go(function () {
+        run(function (): void {
+            go(function (): void {
                 $system = ActorSystem::create();
-                $state = new TestRouterState($system, new ActorSystem\RefSet());
-                $a = new PoolRouterActor(
+                $state  = new TestRouterState($system, new ActorSystem\RefSet());
+                $a      = new PoolRouterActor(
                     ActorSystem\Props::fromFunction(
                         new ActorSystem\Message\ReceiveFunction(
-                            function (ActorSystem\Context\ContextInterface $context) {
+                            static function (ActorSystem\Context\ContextInterface $context): void {
                                 // none
-                            }
+                            },
                         ),
                     ),
                     new TestGroupRouter($system),
                     $state,
-                    new WaitGroup()
+                    new WaitGroup(),
                 );
-                $m = new MockContext();
-                $p1 = $system->newLocalAddress('p1');
-                $m->messageHandle(function () use ($p1) {
+                $m      = new MockContext();
+                $p1     = $system->newLocalAddress('p1');
+                $m->messageHandle(static function () use ($p1) {
                     return new AddRoutee([
-                        'pid' => $p1->protobufPid()
+                        'pid' => $p1->protobufPid(),
                     ]);
                 });
                 $a->receive($m);
                 $p2 = $system->newLocalAddress('p2');
-                $m->messageHandle(function () use ($p2) {
+                $m->messageHandle(static function () use ($p2) {
                     return new AddRoutee([
-                        'pid' => $p2->protobufPid()
+                        'pid' => $p2->protobufPid(),
                     ]);
                 });
                 $a->receive($m);
-                $m->messageHandle(function () {
+                $m->messageHandle(static function () {
                     return new Broadcast('hello');
                 });
                 $count = 0;
                 $m->requestWithCustomSenderHandle(
-                    function (?ActorSystem\Ref $pid, $message, ?ActorSystem\Ref $sender) use (&$count) {
+                    function (ActorSystem\Ref|null $pid, $message, ActorSystem\Ref|null $sender) use (&$count): void {
                         $this->assertSame('hello', $message);
                         $count++;
-                    }
+                    },
                 );
                 $a->receive($m);
                 $this->assertSame(2, $count);

@@ -10,7 +10,7 @@ readonly class SpawnResult
 {
     public function __construct(
         private Ref|null $pid,
-        private SpawnErrorException|null $isError
+        private SpawnErrorException|null $isError,
     ) {
     }
 

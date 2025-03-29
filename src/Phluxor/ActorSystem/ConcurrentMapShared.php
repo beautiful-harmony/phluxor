@@ -10,17 +10,12 @@ use Swoole\Lock;
 
 class ConcurrentMapShared extends ArrayObject
 {
-    /**
-     * @param Lock $mutex
-     * @param array $array
-     * @param int $flags
-     * @param class-string $iteratorClass
-     */
+    /** @param class-string $iteratorClass */
     public function __construct(
         private readonly Lock $mutex = new Lock(Lock::RWLOCK),
         array $array = [],
         int $flags = 0,
-        string $iteratorClass = ArrayIterator::class
+        string $iteratorClass = ArrayIterator::class,
     ) {
         parent::__construct($array, $flags, $iteratorClass);
     }

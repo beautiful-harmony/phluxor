@@ -18,8 +18,8 @@ class EchoSetBehaviorActor implements ActorInterface
         $this->behavior = new Behavior();
         $this->behavior->become(
             new ReceiveFunction(
-                fn(ContextInterface $context) => $this->one($context)
-            )
+                fn (ContextInterface $context) => $this->one($context),
+            ),
         );
     }
 
@@ -30,19 +30,23 @@ class EchoSetBehaviorActor implements ActorInterface
 
     public function one(ContextInterface $context): void
     {
-        if ($context->message() instanceof BehaviorMessage) {
-            $this->behavior->become(
-                new ReceiveFunction(
-                    fn(ContextInterface $context) => $this->other($context)
-                )
-            );
+        if (! ($context->message() instanceof BehaviorMessage)) {
+            return;
         }
+
+        $this->behavior->become(
+            new ReceiveFunction(
+                fn (ContextInterface $context) => $this->other($context),
+            ),
+        );
     }
 
     public function other(ContextInterface $context): void
     {
-        if ($context->message() instanceof EchoRequest) {
-            $context->respond(new EchoResponse());
+        if (! ($context->message() instanceof EchoRequest)) {
+            return;
         }
+
+        $context->respond(new EchoResponse());
     }
 }

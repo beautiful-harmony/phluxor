@@ -9,11 +9,6 @@ namespace Phluxor\ActorSystem;
  */
 readonly class DeadLetterEvent
 {
-    /**
-     * @param Ref|null $ref
-     * @param mixed $message
-     * @param Ref|null $sender
-     */
     public function __construct(
         public Ref|null $ref,
         public mixed $message,

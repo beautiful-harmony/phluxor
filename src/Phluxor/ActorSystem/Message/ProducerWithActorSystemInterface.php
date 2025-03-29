@@ -8,9 +8,5 @@ use Phluxor\ActorSystem;
 
 interface ProducerWithActorSystemInterface
 {
-    /**
-     * @param ActorSystem $system
-     * @return ActorInterface
-     */
     public function __invoke(ActorSystem $system): ActorInterface;
 }

@@ -14,7 +14,7 @@ interface ConfigInterface
     public function onStarter(
         ContextInterface $context,
         Props $props,
-        StateInterface $state
+        StateInterface $state,
     ): void;
 
     public function createRouterState(): StateInterface;

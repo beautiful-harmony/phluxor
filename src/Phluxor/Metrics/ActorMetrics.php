@@ -41,22 +41,23 @@ class ActorMetrics
      */
     private function instruments(): void
     {
-        $meter = Globals::meterProvider()->getMeter(self::METRICS_NAME);
-        $this->actorFailureCount = $this->actorFailureCounter($meter);
+        $meter                              = Globals::meterProvider()->getMeter(self::METRICS_NAME);
+        $this->actorFailureCount            = $this->actorFailureCounter($meter);
         $this->actorMessageReceiveHistogram = $this->actorMessageReceiveHistogram($meter);
-        $this->actorRestartedCounter = $this->actorRestartedCounter($meter);
-        $this->actorStoppedCounter = $this->actorStoppedCounter($meter);
-        $this->actorSpawnCounter = $this->actorSpawnCounter($meter);
-        $this->deadLetterCounter = $this->deadLetterCounter($meter);
-        $this->futuresCompletedCount = $this->futuresCompletedCount($meter);
-        $this->futuresStartedCount = $this->futuresStartedCount($meter);
-        $this->futuresTimedOutCount = $this->futuresTimedOutCount($meter);
+        $this->actorRestartedCounter        = $this->actorRestartedCounter($meter);
+        $this->actorStoppedCounter          = $this->actorStoppedCounter($meter);
+        $this->actorSpawnCounter            = $this->actorSpawnCounter($meter);
+        $this->deadLetterCounter            = $this->deadLetterCounter($meter);
+        $this->futuresCompletedCount        = $this->futuresCompletedCount($meter);
+        $this->futuresStartedCount          = $this->futuresStartedCount($meter);
+        $this->futuresTimedOutCount         = $this->futuresTimedOutCount($meter);
     }
 
     /**
      * Creates and returns an actor failure counter.
      *
      * @param MeterInterface $meter The meter to create the counter with.
+     *
      * @return CounterInterface The created actor failure counter.
      */
     private function actorFailureCounter(MeterInterface $meter): CounterInterface
@@ -64,7 +65,7 @@ class ActorMetrics
         return $meter->createCounter(
             name: 'phluxor_actor_failure_count',
             unit: '1',
-            description: 'The number of actor failures'
+            description: 'The number of actor failures',
         );
     }
 
@@ -72,13 +73,14 @@ class ActorMetrics
      * Creates and returns an actor message receive histogram.
      *
      * @param MeterInterface $meter The meter to create the histogram with.
+     *
      * @return HistogramInterface The created actor message receive histogram.
      */
     private function actorMessageReceiveHistogram(MeterInterface $meter): HistogramInterface
     {
         return $meter->createHistogram(
             name: 'phluxor_actor_message_receive_duration',
-            description: 'The duration of actor message receive'
+            description: 'The duration of actor message receive',
         );
     }
 
@@ -86,6 +88,7 @@ class ActorMetrics
      * Creates and returns an actor restarted counter.
      *
      * @param MeterInterface $meter The meter to create the counter with.
+     *
      * @return CounterInterface The created actor restarted counter.
      */
     private function actorRestartedCounter(MeterInterface $meter): CounterInterface
@@ -93,7 +96,7 @@ class ActorMetrics
         return $meter->createCounter(
             name: 'phluxor_actor_restarted_count',
             unit: '1',
-            description: 'The number of actor restarts'
+            description: 'The number of actor restarts',
         );
     }
 
@@ -101,6 +104,7 @@ class ActorMetrics
      * Creates and returns an actor stopped counter.
      *
      * @param MeterInterface $meter The meter to create the counter with.
+     *
      * @return CounterInterface The created actor stopped counter.
      */
     private function actorStoppedCounter(MeterInterface $meter): CounterInterface
@@ -108,7 +112,7 @@ class ActorMetrics
         return $meter->createCounter(
             name: 'phluxor_actor_stopped_count',
             unit: '1',
-            description: 'The number of actor stopped'
+            description: 'The number of actor stopped',
         );
     }
 
@@ -116,6 +120,7 @@ class ActorMetrics
      * Creates and returns an actor spawn counter.
      *
      * @param MeterInterface $meter The meter to create the counter with.
+     *
      * @return CounterInterface The created actor spawn counter.
      */
     private function actorSpawnCounter(MeterInterface $meter): CounterInterface
@@ -123,7 +128,7 @@ class ActorMetrics
         return $meter->createCounter(
             name: 'phluxor_actor_spawn_count',
             unit: '1',
-            description: 'The number of actor spawned'
+            description: 'The number of actor spawned',
         );
     }
 
@@ -131,6 +136,7 @@ class ActorMetrics
      * Creates and returns a dead letter counter.
      *
      * @param MeterInterface $meter The meter to create the counter with.
+     *
      * @return CounterInterface The created dead letter counter.
      */
     private function deadLetterCounter(MeterInterface $meter): CounterInterface
@@ -138,7 +144,7 @@ class ActorMetrics
         return $meter->createCounter(
             name: 'phluxor_dead_letter_count',
             unit: '1',
-            description: 'The number of dead letters'
+            description: 'The number of dead letters',
         );
     }
 
@@ -146,6 +152,7 @@ class ActorMetrics
      * Creates and returns a futures completed counter.
      *
      * @param MeterInterface $meter The meter to create the counter with.
+     *
      * @return CounterInterface The created futures completed counter.
      */
     private function futuresCompletedCount(MeterInterface $meter): CounterInterface
@@ -153,7 +160,7 @@ class ActorMetrics
         return $meter->createCounter(
             name: 'phluxor_futures_completed_count',
             unit: '1',
-            description: 'The number of completed futures'
+            description: 'The number of completed futures',
         );
     }
 
@@ -161,6 +168,7 @@ class ActorMetrics
      * Creates and returns a futures started counter.
      *
      * @param MeterInterface $meter The meter to create the counter with.
+     *
      * @return CounterInterface The created futures completed counter.
      */
     private function futuresStartedCount(MeterInterface $meter): CounterInterface
@@ -168,7 +176,7 @@ class ActorMetrics
         return $meter->createCounter(
             name: 'phluxor_futures_started_count',
             unit: '1',
-            description: 'The number of stared futures'
+            description: 'The number of stared futures',
         );
     }
 
@@ -176,6 +184,7 @@ class ActorMetrics
      * Creates and returns a futures timed out counter.
      *
      * @param MeterInterface $meter The meter to create the counter with.
+     *
      * @return CounterInterface The created futures timed out counter.
      */
     private function futuresTimedOutCount(MeterInterface $meter): CounterInterface
@@ -183,14 +192,13 @@ class ActorMetrics
         return $meter->createCounter(
             name: 'phluxor_futures_timed_out_count',
             unit: '1',
-            description: 'The number of timed out futures'
+            description: 'The number of timed out futures',
         );
     }
 
     /**
      * Returns the actor's mailbox length gauge.
      * use for openTelemetry
-     * @return CounterInterface
      */
     public function getActorFailureCount(): CounterInterface
     {
@@ -261,10 +269,9 @@ class ActorMetrics
      * Registers an ObservableGaugeInterface as the actor's mailbox length gauge.
      *
      * @param ObservableGaugeInterface $gauge The gauge to use for measuring the actor's mailbox length.
-     * @return void
      */
     public function registerActorMailboxLengthGauge(
-        ObservableGaugeInterface $gauge
+        ObservableGaugeInterface $gauge,
     ): void {
         $this->mutex->lock();
         $this->actorMailboxLength = $gauge;

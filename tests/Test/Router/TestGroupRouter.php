@@ -14,7 +14,7 @@ use Phluxor\Router\StateInterface;
 
 class TestGroupRouter implements ConfigInterface
 {
-    private ?StateInterface $state = null;
+    private StateInterface|null $state = null;
 
     public function __construct(
         private ActorSystem $system,
@@ -42,6 +42,7 @@ class TestGroupRouter implements ConfigInterface
         if ($this->state !== null) {
             return $this->state;
         }
+
         return new TestRouterState($this->system);
     }
 }

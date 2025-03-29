@@ -7,10 +7,12 @@ namespace Test;
 use Closure;
 use DateInterval;
 use Phluxor\ActorSystem;
+use Phluxor\ActorSystem\Context\ContextInterface;
 use Phluxor\ActorSystem\Future;
 use Phluxor\ActorSystem\Message\ActorInterface;
 use Phluxor\ActorSystem\Message\MessageEnvelope;
 use Phluxor\ActorSystem\Props;
+use Phluxor\ActorSystem\ProtoBuf\PID;
 use Phluxor\ActorSystem\ReadonlyMessageHeaderInterface;
 use Phluxor\ActorSystem\ReenterAfterInterface;
 use Phluxor\ActorSystem\Ref;
@@ -19,24 +21,21 @@ use Phluxor\Value\ContextExtensionId;
 use Phluxor\Value\ExtensionInterface;
 use Psr\Log\LoggerInterface;
 
-class MockContext implements \Phluxor\ActorSystem\Context\ContextInterface
+class MockContext implements ContextInterface
 {
     /** @var Closure(): mixed|null */
-    private ?Closure $messageHandler = null;
+    private Closure|null $messageHandler = null;
 
     /** @var Closure(mixed): void|null */
-    private ?Closure $respondHandler = null;
+    private Closure|null $respondHandler = null;
 
     /** @var Closure(?Ref, mixed): void|null */
-    private ?Closure $sendHandler = null;
+    private Closure|null $sendHandler = null;
 
     /** @var Closure(?Ref, mixed, ?Ref): void|null */
-    private ?Closure $requestWithCustomSenderHandler = null;
+    private Closure|null $requestWithCustomSenderHandler = null;
 
-    /**
-     * @param Closure(): mixed $closure
-     * @return void
-     */
+    /** @param Closure(): mixed $closure */
     public function messageHandle(Closure $closure): void
     {
         $this->messageHandler = $closure;
@@ -69,10 +68,12 @@ class MockContext implements \Phluxor\ActorSystem\Context\ContextInterface
 
     public function respond(mixed $response): void
     {
-        if ($this->respondHandler != null) {
-            $handle = $this->respondHandler;
-            $handle($response);
+        if ($this->respondHandler === null) {
+            return;
         }
+
+        $handle = $this->respondHandler;
+        $handle($response);
     }
 
     public function stash(): void
@@ -147,10 +148,12 @@ class MockContext implements \Phluxor\ActorSystem\Context\ContextInterface
 
     public function message(): mixed
     {
-        if ($this->messageHandler != null) {
+        if ($this->messageHandler !== null) {
             $handle = $this->messageHandler;
+
             return $handle();
         }
+
         return null;
     }
 
@@ -159,41 +162,45 @@ class MockContext implements \Phluxor\ActorSystem\Context\ContextInterface
         // TODO: Implement messageHeader() method.
     }
 
-    public function receive(?MessageEnvelope $envelope): void
+    public function receive(MessageEnvelope|null $envelope): void
     {
         // TODO: Implement receive() method.
     }
 
     public function sender(): Ref|null
     {
-        return new Ref(new \Phluxor\ActorSystem\ProtoBuf\PID([
+        return new Ref(new PID([
             'address' => 'localhost',
-            'id' => 'mock'
+            'id' => 'mock',
         ]));
     }
 
-    public function send(?Ref $pid, mixed $message): void
+    public function send(Ref|null $pid, mixed $message): void
     {
-        if ($this->sendHandler != null) {
-            $handle = $this->sendHandler;
-            $handle($pid, $message);
+        if ($this->sendHandler === null) {
+            return;
         }
+
+        $handle = $this->sendHandler;
+        $handle($pid, $message);
     }
 
-    public function request(?Ref $pid, mixed $message): void
+    public function request(Ref|null $pid, mixed $message): void
     {
         // TODO: Implement request() method.
     }
 
-    public function requestWithCustomSender(?Ref $pid, mixed $message, ?Ref $sender): void
+    public function requestWithCustomSender(Ref|null $pid, mixed $message, Ref|null $sender): void
     {
-        if ($this->requestWithCustomSenderHandler != null) {
-            $handle = $this->requestWithCustomSenderHandler;
-            $handle($pid, $message, $sender);
+        if ($this->requestWithCustomSenderHandler === null) {
+            return;
         }
+
+        $handle = $this->requestWithCustomSenderHandler;
+        $handle($pid, $message, $sender);
     }
 
-    public function requestFuture(?Ref $pid, mixed $message, int $duration): Future
+    public function requestFuture(Ref|null $pid, mixed $message, int $duration): Future
     {
         // TODO: Implement requestFuture() method.
     }
@@ -213,22 +220,22 @@ class MockContext implements \Phluxor\ActorSystem\Context\ContextInterface
         // TODO: Implement spawnNamed() method.
     }
 
-    public function stop(?Ref $pid): void
+    public function stop(Ref|null $pid): void
     {
         // TODO: Implement stop() method.
     }
 
-    public function stopFuture(?Ref $pid): Future|null
+    public function stopFuture(Ref|null $pid): Future|null
     {
         // TODO: Implement stopFuture() method.
     }
 
-    public function poison(?Ref $pid): void
+    public function poison(Ref|null $pid): void
     {
         // TODO: Implement poison() method.
     }
 
-    public function poisonFuture(?Ref $pid): Future|null
+    public function poisonFuture(Ref|null $pid): Future|null
     {
         // TODO: Implement poisonFuture() method.
     }

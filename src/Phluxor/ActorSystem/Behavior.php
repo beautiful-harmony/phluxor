@@ -8,6 +8,8 @@ use Phluxor\ActorSystem\Context\ContextInterface;
 use Phluxor\ActorSystem\Message\ActorInterface;
 use Phluxor\ActorSystem\Message\ReceiveFunction;
 
+use function count;
+
 class Behavior implements ActorInterface
 {
     /** @var ReceiveFunction[] */
@@ -15,8 +17,6 @@ class Behavior implements ActorInterface
 
     /**
      * become changes the Actor's behavior to the new behavior
-     * @param ReceiveFunction $receive
-     * @return void
      */
     public function become(ReceiveFunction $receive): void
     {
@@ -26,8 +26,6 @@ class Behavior implements ActorInterface
 
     /**
      * becomeStacked pushes the current behavior on the stack and then sets the new behavior
-     * @param ReceiveFunction $receive
-     * @return void
      */
     public function becomeStacked(ReceiveFunction $receive): void
     {
@@ -36,29 +34,26 @@ class Behavior implements ActorInterface
 
     /**
      * unbecome clears the current behavior and reverts to the previous behavior
-     * @return void
      */
     public function unbecome(): void
     {
         $this->pop();
     }
 
-    /**
-     * @param ContextInterface $context
-     * @return void
-     */
     public function receive(ContextInterface $context): void
     {
         $behavior = $this->peek();
         if ($behavior !== null) {
             $behavior->receive($context);
+
             return;
         }
+
         $context->logger()->error(
-            "empty behavior called",
+            'empty behavior called',
             [
-                'pid' => $context->self()
-            ]
+                'pid' => $context->self(),
+            ],
         );
     }
 
@@ -75,9 +70,10 @@ class Behavior implements ActorInterface
         $this->behaviors = [];
     }
 
-    private function peek(): ?ReceiveFunction
+    private function peek(): ReceiveFunction|null
     {
         $length = $this->len();
+
         return $length > 0 ? $this->behaviors[$length - 1] : null;
     }
 
@@ -86,14 +82,15 @@ class Behavior implements ActorInterface
         $this->behaviors[] = $receive;
     }
 
-    private function pop(): ?ReceiveFunction
+    private function pop(): ReceiveFunction|null
     {
         $behavior = null;
-        $length = $this->len();
+        $length   = $this->len();
         if ($length > 0) {
             $behavior = $this->behaviors[$length - 1];
             unset($this->behaviors[$length - 1]);
         }
+
         return $behavior;
     }
 

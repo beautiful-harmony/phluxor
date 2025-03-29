@@ -14,6 +14,6 @@ interface SupervisorStrategyInterface
         Ref $child,
         ActorSystem\Child\RestartStatistics $restartStatistics,
         mixed $reason,
-        mixed $message
+        mixed $message,
     ): void;
 }

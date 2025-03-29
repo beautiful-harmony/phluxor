@@ -16,14 +16,14 @@ class TestRouterState implements StateInterface
     public function __construct(
         private ActorSystem $system,
         private RefSet|null $routees = null,
-        private SenderInterface|null $sender = null
+        private SenderInterface|null $sender = null,
     ) {
     }
 
     public function routeMessage(mixed $message): void
     {
         $this->routees->forEach(
-            fn(int $_, Ref $ref) => $this->system->root()->send($ref, $message)
+            fn (int $_, Ref $ref) => $this->system->root()->send($ref, $message),
         );
     }
 

@@ -15,15 +15,11 @@ use Phluxor\Router\StateInterface;
 class GroupRouter extends \Phluxor\Router\GroupRouter
 {
     public function __construct(
-        RefSet $routees
+        RefSet $routees,
     ) {
         parent::__construct($routees);
     }
 
-    /**
-     * @param Ref ...$routees
-     * @return Props
-     */
     public static function create(Ref ...$routees): Props
     {
         return Props::fromProducer(new InitProducer())

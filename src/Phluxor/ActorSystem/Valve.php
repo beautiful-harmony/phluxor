@@ -6,7 +6,7 @@ namespace Phluxor\ActorSystem;
 
 enum Valve: int
 {
-    case Open = 0;
+    case Open    = 0;
     case Closing = 1;
-    case Closed = 2;
+    case Closed  = 2;
 }

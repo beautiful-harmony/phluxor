@@ -18,35 +18,36 @@ use Test\EchoSetBehaviorActor;
 use Test\NullProducer;
 use Test\PopBehaviorMessage;
 
+use function join;
 use function Swoole\Coroutine\run;
 
 class BehaviorTest extends TestCase
 {
     public function testBehaviorLength(): void
     {
-        $behavior = new Behavior();
+        $behavior   = new Behavior();
         $reflection = new ReflectionClass($behavior);
-        $property = $reflection->getProperty('behaviors');
+        $property   = $reflection->getProperty('behaviors');
         $this->assertCount(0, $property->getValue($behavior));
     }
 
     public function testBehaviorPush(): void
     {
-        $behavior = new Behavior();
+        $behavior   = new Behavior();
         $reflection = new ReflectionClass($behavior);
         $reflection->getMethod('push')
             ->invoke(
                 $behavior,
                 new ReceiveFunction(
-                    fn(ContextInterface $context) => null
-                )
+                    static fn (ContextInterface $context) => null,
+                ),
             );
         $reflection->getMethod('push')
             ->invoke(
                 $behavior,
                 new ReceiveFunction(
-                    fn(ContextInterface $context) => null
-                )
+                    static fn (ContextInterface $context) => null,
+                ),
             );
         $property = $reflection->getProperty('behaviors');
         $this->assertCount(2, $property->getValue($behavior));
@@ -54,21 +55,21 @@ class BehaviorTest extends TestCase
 
     public function testBehaviorClear(): void
     {
-        $behavior = new Behavior();
+        $behavior   = new Behavior();
         $reflection = new ReflectionClass($behavior);
         $reflection->getMethod('push')
             ->invoke(
                 $behavior,
                 new ReceiveFunction(
-                    fn(ContextInterface $context) => null
-                )
+                    static fn (ContextInterface $context) => null,
+                ),
             );
         $reflection->getMethod('push')
             ->invoke(
                 $behavior,
                 new ReceiveFunction(
-                    fn(ContextInterface $context) => null
-                )
+                    static fn (ContextInterface $context) => null,
+                ),
             );
         $property = $reflection->getProperty('behaviors');
         $this->assertCount(2, $property->getValue($behavior));
@@ -79,17 +80,17 @@ class BehaviorTest extends TestCase
 
     public function testBehaviorPeeks(): void
     {
-        $behavior = new Behavior();
+        $behavior   = new Behavior();
         $reflection = new ReflectionClass($behavior);
-        $c1 = new ReceiveFunction(
-            function (ContextInterface $context) {
+        $c1         = new ReceiveFunction(
+            static function (ContextInterface $context): void {
                 echo 1;
-            }
+            },
         );
-        $c2 = new ReceiveFunction(
-            function (ContextInterface $context) {
+        $c2         = new ReceiveFunction(
+            static function (ContextInterface $context): void {
                 echo 2;
-            }
+            },
         );
         $reflection->getMethod('push')
             ->invoke($behavior, $c1);
@@ -97,9 +98,9 @@ class BehaviorTest extends TestCase
             ->invoke($behavior, $c2);
         $property = $reflection->getProperty('behaviors');
         $this->assertCount(2, $property->getValue($behavior));
-        $system = ActorSystem::create();
+        $system  = ActorSystem::create();
         $context = new ActorContext($system, Props::fromProducer(new NullProducer()), null);
-        $v = $reflection->getMethod('peek')
+        $v       = $reflection->getMethod('peek')
             ->invoke($behavior);
         $v->receive($context);
         $this->expectOutputString('2');
@@ -107,17 +108,17 @@ class BehaviorTest extends TestCase
 
     public function testBehaviorStackPopExpectedOrder(): void
     {
-        $behavior = new Behavior();
+        $behavior   = new Behavior();
         $reflection = new ReflectionClass($behavior);
-        $c1 = new ReceiveFunction(
-            function (ContextInterface $context) {
+        $c1         = new ReceiveFunction(
+            static function (ContextInterface $context): void {
                 echo 1;
-            }
+            },
         );
-        $c2 = new ReceiveFunction(
-            function (ContextInterface $context) {
+        $c2         = new ReceiveFunction(
+            static function (ContextInterface $context): void {
                 echo 2;
-            }
+            },
         );
         $reflection->getMethod('push')
             ->invoke($behavior, $c1);
@@ -125,8 +126,8 @@ class BehaviorTest extends TestCase
             ->invoke($behavior, $c2);
         $property = $reflection->getProperty('behaviors');
         $this->assertCount(2, $property->getValue($behavior));
-        $system = ActorSystem::create();
-        $context = new ActorContext($system, Props::fromProducer(new NullProducer()), null);
+        $system   = ActorSystem::create();
+        $context  = new ActorContext($system, Props::fromProducer(new NullProducer()), null);
         $expected = [2, 1];
         foreach ($expected as $e) {
             $v = $reflection->getMethod('pop')
@@ -138,13 +139,13 @@ class BehaviorTest extends TestCase
 
     public function testActorCanSetBehavior(): void
     {
-        run(function () {
+        run(function (): void {
             $system = ActorSystem::create();
-            go(function (ActorSystem $system) {
+            go(function (ActorSystem $system): void {
                 $pid = $system->root()->spawn(
                     Props::fromProducer(
-                        fn() => new EchoSetBehaviorActor()
-                    )
+                        static fn () => new EchoSetBehaviorActor(),
+                    ),
                 );
                 $system->root()->send($pid, new BehaviorMessage());
                 $future = $system->root()->requestFuture($pid, new EchoRequest(), 1);
@@ -156,13 +157,13 @@ class BehaviorTest extends TestCase
 
     public function testActorCanPopBehavior(): void
     {
-        run(function () {
+        run(function (): void {
             $system = ActorSystem::create();
-            go(function (ActorSystem $system) {
+            go(function (ActorSystem $system): void {
                 $pid = $system->root()->spawn(
                     Props::fromProducer(
-                        fn() => new EchoSetBehaviorActor()
-                    )
+                        static fn () => new EchoSetBehaviorActor(),
+                    ),
                 );
                 $system->root()->send($pid, new BehaviorMessage());
                 $system->root()->send($pid, new PopBehaviorMessage());

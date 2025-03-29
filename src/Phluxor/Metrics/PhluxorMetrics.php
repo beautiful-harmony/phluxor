@@ -18,9 +18,9 @@ class PhluxorMetrics
     private array $knownMetrics = [];
 
     public function __construct(
-        private readonly LoggerInterface $logger
+        private readonly LoggerInterface $logger,
     ) {
-        $this->mutex = new Lock(Lock::MUTEX);
+        $this->mutex        = new Lock(Lock::MUTEX);
         $this->actorMetrics = new ActorMetrics();
 
         $this->register(self::INTERNAL_ACTOR_METRICS, $this->actorMetrics);
@@ -39,9 +39,8 @@ class PhluxorMetrics
     /**
      * Registers a new ActorMetrics object with the specified key name.
      *
-     * @param string $keyName The key name for the ActorMetrics object.
+     * @param string       $keyName      The key name for the ActorMetrics object.
      * @param ActorMetrics $actorMetrics The ActorMetrics object to register.
-     * @return void
      */
     public function register(string $keyName, ActorMetrics $actorMetrics): void
     {
@@ -50,27 +49,26 @@ class PhluxorMetrics
             $this->mutex->unlock();
             $this->logger->error(
                 'could not register actor metrics, key already exists',
-                [
-                    'key' => $keyName,
-                ]
+                ['key' => $keyName],
             );
+
             return;
         }
+
         $this->knownMetrics[$keyName] = $actorMetrics;
         $this->mutex->unlock();
     }
 
-    public function find(string $keyName): ?ActorMetrics
+    public function find(string $keyName): ActorMetrics|null
     {
         $metrics =  $this->knownMetrics[$keyName] ?? null;
         if ($metrics === null) {
             $this->logger->error(
                 'could not find actor metrics',
-                [
-                    'key' => $keyName,
-                ]
+                ['key' => $keyName],
             );
         }
+
         return $metrics;
     }
 }

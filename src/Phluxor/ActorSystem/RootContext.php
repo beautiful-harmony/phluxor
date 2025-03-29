@@ -25,17 +25,16 @@ class RootContext implements
 
     /** @var Closure(ActorSystem, string, Props, SpawnerInterface): SpawnResult|SpawnFunctionInterface|null */
     private Closure|SpawnFunctionInterface|null $spawnMiddleware = null;
-    private SupervisorStrategyInterface|null $guardianStrategy = null;
+    private SupervisorStrategyInterface|null $guardianStrategy   = null;
 
     /**
-     * @param ActorSystem $actorSystem
-     * @param string[] $headers
-     * @param Closure[]|SenderMiddlewareInterface[]  $senderMiddlewares
+     * @param string[]                              $headers
+     * @param Closure[]|SenderMiddlewareInterface[] $senderMiddlewares
      */
     public function __construct(
         private readonly ActorSystem $actorSystem,
         private array $headers = [],
-        array $senderMiddlewares = []
+        array $senderMiddlewares = [],
     ) {
         $this->senderMiddleware = makeSenderMiddlewareChain(
             $senderMiddlewares,
@@ -61,26 +60,22 @@ class RootContext implements
     public function withHeader(string $key, string $value): RootContext
     {
         $this->headers[$key] = $value;
+
         return $this;
     }
 
-    /**
-     * @param SenderMiddlewareInterface ...$middleware
-     * @return $this
-     */
+    /** @return $this */
     public function withSenderMiddleware(SenderMiddlewareInterface ...$middleware): RootContext
     {
         $this->senderMiddleware = makeSenderMiddlewareChain(
             $middleware,
             new ActorSystem\Middleware\DefaultRootContextSender($this->actorSystem),
         );
+
         return $this;
     }
 
-    /**
-     * @param Closure|SpawnMiddlewareInterface ...$middleware
-     * @return $this
-     */
+    /** @return $this */
     public function withSpawnMiddleware(Closure|SpawnMiddlewareInterface ...$middleware): RootContext
     {
         $this->spawnMiddleware = makeSpawnMiddlewareChain(
@@ -91,18 +86,17 @@ class RootContext implements
                 Props $props,
             ): SpawnResult {
                 return $props->spawn($actorSystem, $id, $this);
-            }
+            },
         );
+
         return $this;
     }
 
-    /**
-     * @param SupervisorStrategyInterface $supervisorStrategy
-     * @return $this
-     */
+    /** @return $this */
     public function withGuardian(SupervisorStrategyInterface $supervisorStrategy): RootContext
     {
         $this->guardianStrategy = $supervisorStrategy;
+
         return $this;
     }
 
@@ -113,9 +107,10 @@ class RootContext implements
 
     public function self(): Ref|null
     {
-        if ($this->guardianStrategy != null) {
+        if ($this->guardianStrategy !== null) {
             return $this->actorSystem->getGuardiansValue()->getGuardianRef($this->guardianStrategy);
         }
+
         return null;
     }
 
@@ -124,13 +119,10 @@ class RootContext implements
         return null;
     }
 
-    /**
-     * @return ActorInterface
-     */
     public function actor(): ActorInterface
     {
         throw new ActorSystem\Exception\RootContextActorException(
-            'RootContext cannot be used as an actor'
+            'RootContext cannot be used as an actor',
         );
     }
 
@@ -144,27 +136,17 @@ class RootContext implements
         return new ActorSystem\Message\MessageHeader($this->headers);
     }
 
-    /**
-     * @param Ref|null $pid
-     * @param mixed $message
-     * @return void
-     */
-    public function send(?Ref $pid, mixed $message): void
+    public function send(Ref|null $pid, mixed $message): void
     {
         $this->sendUserMessage($pid, $message);
     }
 
-    /**
-     * @param Ref|null $pid
-     * @param mixed $message
-     * @return void
-     */
-    public function request(?Ref $pid, mixed $message): void
+    public function request(Ref|null $pid, mixed $message): void
     {
         $this->sendUserMessage($pid, $message);
     }
 
-    public function requestWithCustomSender(?Ref $pid, mixed $message, ?Ref $sender): void
+    public function requestWithCustomSender(Ref|null $pid, mixed $message, Ref|null $sender): void
     {
         $env = new MessageEnvelope(
             header: null,
@@ -174,21 +156,22 @@ class RootContext implements
         $this->sendUserMessage($pid, $env);
     }
 
-    public function requestFuture(?Ref $pid, mixed $message, int $duration): Future
+    public function requestFuture(Ref|null $pid, mixed $message, int $duration): Future
     {
         $future = Future::create($this->actorSystem, $duration);
-        $env = new MessageEnvelope(
+        $env    = new MessageEnvelope(
             header: null,
             message: $message,
             sender: $future->pid(),
         );
         $this->sendUserMessage($pid, $env);
+
         return $future;
     }
 
-    private function sendUserMessage(?Ref $pid, mixed $envelope): void
+    private function sendUserMessage(Ref|null $pid, mixed $envelope): void
     {
-        if ($this->senderMiddleware != null) {
+        if ($this->senderMiddleware !== null) {
             $call = $this->senderMiddleware;
             $call($this, $pid, $envelope);
         } else {
@@ -198,98 +181,96 @@ class RootContext implements
 
     /**
      * starts a new actor based on props and named with a unique id.
-     * @param Props $props
-     * @return Ref|null
      */
     public function spawn(Props $props): Ref|null
     {
         $result = $this->spawnNamed($props, $this->actorSystem->getProcessRegistry()->nextId());
-        if ($result->isError() != null) {
+        if ($result->isError() !== null) {
             throw $result->isError();
         }
+
         return $result->getRef();
     }
 
     /**
      * starts a new actor based on props and named with a unique id.
-     * @param Props $props
-     * @param string $prefix
-     * @return Ref|null
      */
     public function spawnPrefix(Props $props, string $prefix): Ref|null
     {
         $result = $this->spawnNamed($props, $prefix . $this->actorSystem->getProcessRegistry()->nextId());
-        if ($result->isError() != null) {
+        if ($result->isError() !== null) {
             throw $result->isError();
         }
+
         return $result->getRef();
     }
 
     /**
      * starts a new actor based on props and named using the specified name
-     * @param Props $props
-     * @param string $name
-     * @return SpawnResult
      */
     public function spawnNamed(Props $props, string $name): SpawnResult
     {
         $rootContext = $this;
-        if ($props->getGuardianStrategy() != null) {
+        if ($props->getGuardianStrategy() !== null) {
             $rootContext = $this->copy()->withGuardian($props->getGuardianStrategy());
         }
-        if ($rootContext->spawnMiddleware != null) {
+
+        if ($rootContext->spawnMiddleware !== null) {
             $spawnMiddleware = $this->spawnMiddleware;
+
             return $spawnMiddleware($this->actorSystem, $name, $props, $rootContext);
         }
+
         return $props->spawn($this->actorSystem, $name, $rootContext);
     }
 
-    /**
-     * @param Ref|null $pid
-     * @return void
-     */
-    public function stop(?Ref $pid): void
+    public function stop(Ref|null $pid): void
     {
-        if ($pid == null) {
+        if ($pid === null) {
             return;
         }
+
         $pid->ref($this->actorSystem)?->stop($pid);
     }
 
-    public function stopFuture(?Ref $pid): Future|null
+    public function stopFuture(Ref|null $pid): Future|null
     {
         $future = Future::create($this->actorSystem, 10);
-        if ($pid != null) {
+        if ($pid !== null) {
             $pid->sendSystemMessage(
                 $this->actorSystem,
                 new ActorSystem\ProtoBuf\Watch([
                     'watcher' => $future->pid()?->protobufPid(),
-                ])
+                ]),
             );
             $this->stop($pid);
+
             return $future;
         }
+
         return null;
     }
 
-    public function poison(?Ref $pid): void
+    public function poison(Ref|null $pid): void
     {
         $pid?->sendUserMessage($this->actorSystem(), new ActorSystem\ProtoBuf\PoisonPill());
     }
 
-    public function poisonFuture(?Ref $pid): Future|null
+    public function poisonFuture(Ref|null $pid): Future|null
     {
         $future = Future::create($this->actorSystem, 10);
-        if ($pid != null) {
+        if ($pid !== null) {
             $pid->sendSystemMessage(
                 $this->actorSystem(),
                 new ActorSystem\ProtoBuf\Watch([
                     'watcher' => $future->pid()?->protobufPid(),
-                ])
+                ]),
             );
             $this->poison($pid);
+
             return $future;
         }
+
         return null;
     }
 }

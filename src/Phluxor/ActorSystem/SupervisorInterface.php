@@ -6,9 +6,7 @@ namespace Phluxor\ActorSystem;
 
 interface SupervisorInterface
 {
-    /**
-     * @return Ref[]
-     */
+    /** @return Ref[] */
     public function children(): array;
 
     public function escalateFailure(mixed $reason, mixed $message): void;

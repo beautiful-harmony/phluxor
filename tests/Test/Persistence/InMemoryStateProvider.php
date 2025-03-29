@@ -10,9 +10,6 @@ use Phluxor\Persistence\ProviderStateInterface;
 
 readonly class InMemoryStateProvider implements ProviderInterface
 {
-    /**
-     * @param InMemoryProvider $provider
-     */
     public function __construct(
         private InMemoryProvider $provider,
     ) {

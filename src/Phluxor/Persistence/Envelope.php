@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Phluxor\Persistence;
 
 use Exception;
+use Google\Protobuf\Internal\Message;
 use Phluxor\Persistence\Exception\UnknownMessageException;
 use ReflectionClass;
 use ReflectionException;
@@ -24,18 +25,20 @@ readonly class Envelope
      * @throws ReflectionException
      * @throws Exception
      */
-    public function message(): \Google\Protobuf\Internal\Message
+    public function message(): Message
     {
-        $json = htmlspecialchars_decode($this->message);
+        $json    = htmlspecialchars_decode($this->message);
         $decoded = json_decode($json, true);
-        $ref = new ReflectionClass($decoded['typeName']);
-        $obj = $ref->newInstance();
-        if (!$obj instanceof \Google\Protobuf\Internal\Message) {
+        $ref     = new ReflectionClass($decoded['typeName']);
+        $obj     = $ref->newInstance();
+        if (! $obj instanceof Message) {
             throw new UnknownMessageException(
-                sprintf('Unknown message type: %s', $decoded['typeName'])
+                sprintf('Unknown message type: %s', $decoded['typeName']),
             );
         }
+
         $obj->mergeFromJsonString($decoded['rawMessage']);
+
         return $obj;
     }
 }

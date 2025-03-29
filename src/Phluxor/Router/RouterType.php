@@ -7,5 +7,5 @@ namespace Phluxor\Router;
 enum RouterType: int
 {
     case GroupRouterType = 0;
-    case PoolRouterType = 1;
+    case PoolRouterType  = 1;
 }

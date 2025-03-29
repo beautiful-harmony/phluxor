@@ -16,44 +16,46 @@ use Phluxor\Router\ConsistentHash\HashRing;
 use Symfony\Component\Cache\Adapter\ArrayAdapter;
 use Symfony\Component\Cache\Psr16Cache;
 
+use function sprintf;
+
 class ConsistentHashRouterState implements StateInterface
 {
-    private ?HashmapContainer $hmc = null;
+    private HashmapContainer|null $hmc = null;
 
     public function __construct(
-        private ?SenderInterface $sender = null
+        private SenderInterface|null $sender = null,
     ) {
     }
 
     public function routeMessage(mixed $message): void
     {
         $unwrap = MessageEnvelope::unwrapEnvelope($message);
-        $msg = $unwrap['message'];
+        $msg    = $unwrap['message'];
         switch (true) {
             case $msg instanceof HasherInterface:
                 $hash = $msg->hash();
                 try {
                     $node = $this->hmc->Hashring()->getServer($hash);
-                } catch (ConsistentHashException $e) {
+                } catch (ConsistentHashException) {
                     return;
                 }
+
                 $ref = $this->hmc->getRouteeMap()[$node];
                 $this->sender->send($ref, $msg);
             default:
-                //
         }
     }
 
     public function registerRoutees(RefSet $routees): void
     {
-        $hmc = new HashmapContainer();
+        $hmc   = new HashmapContainer();
         $nodes = [];
         $routees->forEach(
-            function (int $int, Ref $ref) use (&$nodes, &$hmc) {
-                $nodeName = sprintf('%s@%s', $ref->protobufPid()->getAddress(), $ref);
+            static function (int $int, Ref $ref) use (&$nodes, &$hmc): void {
+                $nodeName    = sprintf('%s@%s', $ref->protobufPid()->getAddress(), $ref);
                 $nodes[$int] = $nodeName;
                 $hmc->addRoutee($nodeName, $ref);
-            }
+            },
         );
         $hashring = new HashRing(new Psr16Cache(new ArrayAdapter()));
         $hmc->setHashring($hashring->createContinuum($nodes));
@@ -66,6 +68,7 @@ class ConsistentHashRouterState implements StateInterface
         foreach ($this->hmc->getRouteeMap() as $v) {
             $routees->add($v);
         }
+
         return $routees;
     }
 

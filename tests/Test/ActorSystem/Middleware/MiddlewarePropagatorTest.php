@@ -16,19 +16,19 @@ use function Swoole\Coroutine\run;
 
 class MiddlewarePropagatorTest extends TestCase
 {
-    private int $spawnCounter = 0;
-    private ?ActorSystem\Message\ReceiveFunction $starFunc = null;
+    private int $spawnCounter                                  = 0;
+    private ActorSystem\Message\ReceiveFunction|null $starFunc = null;
 
     public function testMiddlewarePropagator(): void
     {
-        run(function () {
-            go(function () {
-                $lock = new Lock(Lock::MUTEX);
-                $system = ActorSystem::create();
+        run(function (): void {
+            go(function (): void {
+                $lock       = new Lock(Lock::MUTEX);
+                $system     = ActorSystem::create();
                 $propagator = new MiddlewarePropagation();
                 $propagator->setItselfForwarded()
                     ->setSpawnMiddleware(
-                        $this->spawnMiddleware($lock)
+                        $this->spawnMiddleware($lock),
                     );
                 $rootContext = new ActorSystem\RootContext($system);
                 $rootContext->withSpawnMiddleware($propagator->spawnMiddleware());
@@ -39,10 +39,6 @@ class MiddlewarePropagatorTest extends TestCase
         });
     }
 
-    /**
-     * @param Lock $lock
-     * @return SpawnMiddlewareInterface
-     */
     public function spawnMiddleware(Lock $lock): SpawnMiddlewareInterface
     {
         return new TestMiddleware($this->spawnCounter, $lock);
@@ -52,15 +48,19 @@ class MiddlewarePropagatorTest extends TestCase
     {
         return ActorSystem\Props::fromFunction(
             new ActorSystem\Message\ReceiveFunction(
-                function (ContextInterface $c) use ($input) {
+                function (ContextInterface $c) use ($input): void {
                     $message = $c->message();
-                    if ($message instanceof ActorSystem\Message\Started) {
-                        if ($input > 0) {
-                            $c->spawn($this->start($input - 1));
-                        }
+                    if (! ($message instanceof ActorSystem\Message\Started)) {
+                        return;
                     }
-                }
-            )
+
+                    if ($input <= 0) {
+                        return;
+                    }
+
+                    $c->spawn($this->start($input - 1));
+                },
+            ),
         );
     }
 }

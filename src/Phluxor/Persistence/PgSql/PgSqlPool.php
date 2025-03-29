@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Phluxor\Persistence\PgSql;
 
+use PDO;
 use Swoole\ConnectionPool;
 use Swoole\Database\PDOProxy;
 
@@ -17,7 +18,7 @@ class PgSqlPool extends ConnectionPool
         int $size = self::DEFAULT_SIZE,
     ) {
         parent::__construct(function () {
-            return new \PDO(
+            return new PDO(
                 $this->dsn,
                 $this->username,
                 $this->password,

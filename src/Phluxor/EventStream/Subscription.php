@@ -9,8 +9,8 @@ use Swoole\Atomic;
 
 class Subscription
 {
-    const int DEACTIVE = 0;
-    const int ACTIVE = 1;
+    public const int DEACTIVE = 0;
+    public const int ACTIVE   = 1;
 
     /** @var Closure(mixed): void|null  */
     private Closure|null $handler = null;
@@ -19,10 +19,6 @@ class Subscription
     private Closure|null $predicate = null;
     private readonly Atomic $active;
 
-    /**
-     * @param int $active
-     * @param int $id
-     */
     public function __construct(
         int $active = self::DEACTIVE,
         private int $id = 0,
@@ -40,36 +36,24 @@ class Subscription
         $this->id = $id;
     }
 
-    /**
-     * @param Closure(mixed): bool $predicate
-     * @return void
-     */
+    /** @param Closure(mixed): bool $predicate */
     public function setPredicate(Closure $predicate): void
     {
         $this->predicate = $predicate;
     }
 
-    /**
-     * @param mixed $event
-     * @return bool
-     */
     public function predicate(mixed $event): bool
     {
         return $this->predicate ? ($this->predicate)($event) : true;
     }
 
-    /**
-     * @return Closure(mixed): bool|null
-     */
+    /** @return Closure(mixed): bool|null */
     public function getPredicate(): Closure|null
     {
         return $this->predicate;
     }
 
-    /**
-     * @param Closure(mixed): void $handler
-     * @return void
-     */
+    /** @param Closure(mixed): void $handler */
     public function setHandler(Closure $handler): void
     {
         $this->handler = $handler;
@@ -77,9 +61,11 @@ class Subscription
 
     public function handle(mixed $event): void
     {
-        if ($this->handler) {
-            ($this->handler)($event);
+        if (! $this->handler) {
+            return;
         }
+
+        ($this->handler)($event);
     }
 
     public function activate(): bool

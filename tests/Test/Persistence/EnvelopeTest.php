@@ -10,17 +10,19 @@ use Phluxor\Persistence\Envelope;
 use Phluxor\Persistence\Message;
 use PHPUnit\Framework\TestCase;
 
+use function json_encode;
+
 class EnvelopeTest extends TestCase
 {
     public function testShouldSerializeMessage(): void
     {
         $message = new Message(
             new Terminated(
-                ['why' => TerminatedReason::AddressTerminated]
-            )
+                ['why' => TerminatedReason::AddressTerminated],
+            ),
         );
-        $env = new Envelope(json_encode($message));
-        $o = $env->message();
+        $env     = new Envelope(json_encode($message));
+        $o       = $env->message();
         $this->assertInstanceOf(Terminated::class, $o);
         $this->assertSame(1, $o->getWhy());
     }

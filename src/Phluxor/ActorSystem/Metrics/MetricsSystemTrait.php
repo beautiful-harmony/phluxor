@@ -12,9 +12,10 @@ trait MetricsSystemTrait
      * Checks if the given ActorSystem has a Metrics extension enabled and returns it.
      *
      * @param ActorSystem $actorSystem The ActorSystem to check.
+     *
      * @return ActorSystem\Metrics|null The Metrics extension if found and enabled, null otherwise.
      */
-    protected function enabledMetricsSystem(ActorSystem $actorSystem): ?ActorSystem\Metrics
+    protected function enabledMetricsSystem(ActorSystem $actorSystem): ActorSystem\Metrics|null
     {
         $extensionId = $actorSystem->metrics()?->extensionID();
         if ($extensionId) {
@@ -23,6 +24,7 @@ trait MetricsSystemTrait
                 return $metricsSystem;
             }
         }
+
         return null;
     }
 }

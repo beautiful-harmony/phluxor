@@ -24,8 +24,9 @@ readonly class Connection
                 ->withDbName($this->dsn->database)
                 ->withCharset($this->dsn->charset)
                 ->withUsername($this->dsn->username)
-                ->withPassword($this->dsn->password)
+                ->withPassword($this->dsn->password),
         );
+
         return $pool->get();
     }
 }

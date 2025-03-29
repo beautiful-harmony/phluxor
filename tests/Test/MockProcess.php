@@ -11,29 +11,33 @@ use Phluxor\ActorSystem\Ref;
 readonly class MockProcess implements ProcessInterface
 {
     /**
-     * @param Closure(?Ref, mixed): void|null  $systemMessageFunc
+     * @param Closure(?Ref, mixed): void|null $systemMessageFunc
      * @param Closure(?Ref, mixed): void|null $userMessageFunc
      */
     public function __construct(
         private Closure|null $systemMessageFunc = null,
-        private Closure|null $userMessageFunc = null
+        private Closure|null $userMessageFunc = null,
     ) {
     }
 
-    public function sendUserMessage(?Ref $pid, mixed $message): void
+    public function sendUserMessage(Ref|null $pid, mixed $message): void
     {
-        if ($this->userMessageFunc != null) {
-            $f = $this->userMessageFunc;
-            $f($pid, $message);
+        if ($this->userMessageFunc === null) {
+            return;
         }
+
+        $f = $this->userMessageFunc;
+        $f($pid, $message);
     }
 
     public function sendSystemMessage(Ref $pid, mixed $message): void
     {
-        if ($this->systemMessageFunc != null) {
-            $f = $this->systemMessageFunc;
-            $f($pid, $message);
+        if ($this->systemMessageFunc === null) {
+            return;
         }
+
+        $f = $this->systemMessageFunc;
+        $f($pid, $message);
     }
 
     public function stop(Ref $pid): void

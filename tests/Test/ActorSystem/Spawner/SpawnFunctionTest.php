@@ -14,22 +14,22 @@ class SpawnFunctionTest extends TestCase
 {
     public function testInvoke(): void
     {
-        run(function () {
-            go(function () {
+        run(function (): void {
+            go(function (): void {
                 $actorSystem = ActorSystem::create();
-                $spawner = new ActorSystem\Spawner\SpawnFunction();
-                $pid = $spawner(
+                $spawner     = new ActorSystem\Spawner\SpawnFunction();
+                $pid         = $spawner(
                     $actorSystem,
                     'test',
-                    ActorSystem\Props::fromProducer(fn() => new VoidActor()),
-                    $actorSystem->root()
+                    ActorSystem\Props::fromProducer(static fn () => new VoidActor()),
+                    $actorSystem->root(),
                 );
-                $this->assertSame('test', (string)$pid->getRef());
+                $this->assertSame('test', (string) $pid->getRef());
                 $pid = $spawner(
                     $actorSystem,
                     'test',
-                    ActorSystem\Props::fromProducer(fn() => new VoidActor()),
-                    $actorSystem->root()
+                    ActorSystem\Props::fromProducer(static fn () => new VoidActor()),
+                    $actorSystem->root(),
                 );
                 $this->assertNotNull($pid->isError());
                 $this->assertInstanceOf(ActorSystem\Exception\SpawnErrorException::class, $pid->isError());

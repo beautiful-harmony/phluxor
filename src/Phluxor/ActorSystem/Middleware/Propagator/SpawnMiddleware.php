@@ -11,6 +11,8 @@ use Phluxor\ActorSystem\Props\SenderMiddlewareInterface;
 use Phluxor\ActorSystem\Props\SpawnMiddlewareInterface;
 use Phluxor\ActorSystem\SpawnFunctionInterface;
 
+use function array_merge;
+
 class SpawnMiddleware implements SpawnMiddlewareInterface
 {
     /** @var SpawnMiddlewareInterface[] */
@@ -25,31 +27,31 @@ class SpawnMiddleware implements SpawnMiddlewareInterface
     public function setSpawnMiddleware(SpawnMiddlewareInterface ...$middleware): self
     {
         $this->spawnMiddleware = array_merge($this->spawnMiddleware, $middleware);
+
         return $this;
     }
 
     public function setSenderMiddleware(SenderMiddlewareInterface ...$middleware): self
     {
         $this->senderMiddleware = array_merge($this->senderMiddleware, $middleware);
+
         return $this;
     }
 
     public function setReceiverMiddleware(ReceiverMiddlewareInterface ...$middleware): self
     {
         $this->receiverMiddleware = array_merge($this->receiverMiddleware, $middleware);
+
         return $this;
     }
 
     public function setContextDecorator(ContextDecoratorInterface ...$decorators): self
     {
         $this->contextDecorators = array_merge($this->contextDecorators, $decorators);
+
         return $this;
     }
 
-    /**
-     * @param Closure|SpawnFunctionInterface $next
-     * @return Closure|SpawnFunctionInterface
-     */
     public function __invoke(Closure|SpawnFunctionInterface $next): Closure|SpawnFunctionInterface
     {
         return new SpawnMiddlewareProcess(
@@ -57,7 +59,7 @@ class SpawnMiddleware implements SpawnMiddlewareInterface
             $this->spawnMiddleware,
             $this->senderMiddleware,
             $this->receiverMiddleware,
-            $this->contextDecorators
+            $this->contextDecorators,
         );
     }
 }

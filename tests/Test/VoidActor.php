@@ -9,7 +9,6 @@ use Phluxor\ActorSystem\Message\ActorInterface;
 
 /**
  * Class VoidActor / test only
- * @package Test
  */
 class VoidActor implements ActorInterface
 {

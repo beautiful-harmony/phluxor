@@ -10,12 +10,12 @@ use Phluxor\ActorSystem\Message\MessageHeader;
 readonly class MessageHeaderReader implements PropagationGetterInterface
 {
     public function __construct(
-        private MessageHeader $header
+        private MessageHeader $header,
     ) {
     }
 
     /**
-     * {@inheritdoc}
+     * {@inheritDoc}
      */
     public function keys($carrier): array
     {
@@ -23,11 +23,12 @@ readonly class MessageHeaderReader implements PropagationGetterInterface
     }
 
     /**
-     * {@inheritdoc}
+     * {@inheritDoc}
      */
-    public function get($carrier, string $key): ?string
+    public function get($carrier, string $key): string|null
     {
         $value = $carrier[$key] ??= null;
+
         return $this->header->get($key) ?? $value;
     }
 }

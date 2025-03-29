@@ -8,14 +8,7 @@ use Closure;
 
 interface DispatcherInterface
 {
-    /**
-     * @param DispatcherFunctionInterface|Closure $fn
-     * @return void
-     */
     public function schedule(DispatcherFunctionInterface|Closure $fn): void;
 
-    /**
-     * @return int
-     */
     public function throughput(): int;
 }

@@ -14,8 +14,8 @@ class RoundRobinState implements StateInterface
 {
     public function __construct(
         private RefSet $routees = new RefSet(),
-        private null|ContextInterface|SenderInterface $sender = null,
-        private Atomic $index = new Atomic(-1)
+        private ContextInterface|SenderInterface|null $sender = null,
+        private Atomic $index = new Atomic(-1),
     ) {
     }
 
@@ -25,6 +25,7 @@ class RoundRobinState implements StateInterface
         if ($ref === null) {
             return;
         }
+
         $this->sender?->send($ref, $message);
     }
 
@@ -43,14 +44,16 @@ class RoundRobinState implements StateInterface
         $this->sender = $sender;
     }
 
-    private function roundRobinRoutee(): ?Ref
+    private function roundRobinRoutee(): Ref|null
     {
         $i = $this->index->add();
         if ($i < 0) {
             $this->index->set(0);
             $i = 0;
         }
+
         $mod = $this->routees->len();
+
         return $this->routees->get($i % $mod);
     }
 }

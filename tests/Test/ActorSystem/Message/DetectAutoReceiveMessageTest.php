@@ -23,13 +23,13 @@ class DetectAutoReceiveMessageTest extends TestCase
                 'expected' => false,
             ],
             [
-                'message' => "string",
+                'message' => 'string',
                 'expected' => false,
             ],
             [
-                'message' => "Stop",
+                'message' => 'Stop',
                 'expected' => false,
-            ]
+            ],
         ];
         foreach ($messages as $message) {
             $autoReceiveMessage = new DetectAutoReceiveMessage($message['message']);

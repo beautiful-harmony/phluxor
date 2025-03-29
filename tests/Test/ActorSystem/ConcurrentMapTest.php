@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Test\ActorSystem;
 
 use Phluxor\ActorSystem\ConcurrentMap;
@@ -13,10 +15,10 @@ class ConcurrentMapTest extends TestCase
 {
     public function testConcurrentMap(): void
     {
-        run(function () {
-            go(function () {
+        run(function (): void {
+            go(function (): void {
                 $map = new ConcurrentMap();
-                $s = $map->getShard('a');
+                $s   = $map->getShard('a');
                 $s->offsetSet('a', 'b');
                 $this->assertSame('b', $s->offsetGet('a'));
             });
@@ -28,7 +30,7 @@ class ConcurrentMapTest extends TestCase
      */
     public function testGetShardConsistency(): void
     {
-        $map = new ConcurrentMap();
+        $map    = new ConcurrentMap();
         $shard1 = $map->getShard('testKey');
         $shard2 = $map->getShard('testKey');
         $this->assertSame($shard1, $shard2);
@@ -39,7 +41,7 @@ class ConcurrentMapTest extends TestCase
      */
     public function testGetShardWithDifferentKeys(): void
     {
-        $map = new ConcurrentMap();
+        $map    = new ConcurrentMap();
         $shard1 = $map->getShard('key1');
         $shard2 = $map->getShard('key2');
         $this->assertNotSame($shard1, $shard2);
@@ -50,8 +52,8 @@ class ConcurrentMapTest extends TestCase
      */
     public function testGetShardWithEdgeCases(): void
     {
-        $map = new ConcurrentMap();
-        $emptyShard = $map->getShard('');
+        $map              = new ConcurrentMap();
+        $emptyShard       = $map->getShard('');
         $specialCharShard = $map->getShard('!@#$%^&*()');
         $this->assertInstanceOf(ConcurrentMapShared::class, $emptyShard);
         $this->assertInstanceOf(ConcurrentMapShared::class, $specialCharShard);
@@ -62,7 +64,7 @@ class ConcurrentMapTest extends TestCase
      */
     public function testGetShardReturnsValidInstance(): void
     {
-        $map = new ConcurrentMap();
+        $map   = new ConcurrentMap();
         $shard = $map->getShard('someKey');
         $this->assertInstanceOf(ConcurrentMapShared::class, $shard);
     }

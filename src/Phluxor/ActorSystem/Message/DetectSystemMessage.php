@@ -19,7 +19,7 @@ final class DetectSystemMessage implements DetectMessageInterface
     ];
 
     public function __construct(
-        private readonly mixed $message
+        private readonly mixed $message,
     ) {
     }
 
@@ -28,11 +28,13 @@ final class DetectSystemMessage implements DetectMessageInterface
         if ($this->message instanceof SystemMessageInterface) {
             return true;
         }
+
         foreach ($this->expects as $message) {
             if ($this->message instanceof $message) {
                 return true;
             }
         }
+
         return false;
     }
 }

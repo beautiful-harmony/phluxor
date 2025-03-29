@@ -14,16 +14,12 @@ use Phluxor\Router\StateInterface;
 class PoolRouter extends \Phluxor\Router\PoolRouter
 {
     public function __construct(
-        int $poolSize
+        int $poolSize,
     ) {
         parent::__construct($poolSize);
     }
 
-    /**
-     * @param int $poolSize
-     * @param Closure(Props): void ...$options
-     * @return Props
-     */
+    /** @param Closure(Props): void ...$options */
     public static function create(int $poolSize, Closure ...$options): Props
     {
         return Props::fromProducer(new InitProducer())

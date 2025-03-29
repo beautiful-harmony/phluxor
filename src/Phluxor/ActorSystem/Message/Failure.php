@@ -12,12 +12,6 @@ use Phluxor\ActorSystem\Ref;
  */
 readonly class Failure implements SystemMessageInterface
 {
-    /**
-     * @param Ref $who
-     * @param mixed $reason
-     * @param RestartStatistics $restartStatistics
-     * @param mixed $message
-     */
     public function __construct(
         private Ref $who,
         private mixed $reason,

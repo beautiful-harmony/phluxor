@@ -6,8 +6,5 @@ namespace Phluxor\ActorSystem\Dispatcher;
 
 interface DispatcherFunctionInterface
 {
-    /**
-     * @return void
-     */
     public function __invoke(): void;
 }

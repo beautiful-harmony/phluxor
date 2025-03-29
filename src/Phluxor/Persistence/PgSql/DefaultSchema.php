@@ -10,7 +10,7 @@ class DefaultSchema implements RdbmsSchemaInterface
 {
     public function __construct(
         private string $journalTable = 'journals',
-        private string $snapshotTable = 'snapshots'
+        private string $snapshotTable = 'snapshots',
     ) {
     }
 
@@ -22,12 +22,14 @@ class DefaultSchema implements RdbmsSchemaInterface
     public function renameJournalTable(string $name): self
     {
         $this->journalTable = $name;
+
         return $this;
     }
 
     public function renameSnapshotTable(string $name): self
     {
         $this->snapshotTable = $name;
+
         return $this;
     }
 
@@ -66,28 +68,27 @@ class DefaultSchema implements RdbmsSchemaInterface
         return 'created_at';
     }
 
-    /**
-     * @return string[]
-     */
+    /** @return string[] */
     public function createTable(): array
     {
-        $tables = [
+        $tables       = [
             $this->journalTableName(),
             $this->snapshotTableName(),
         ];
         $createTables = [];
         foreach ($tables as $table) {
             $createTables[] = "CREATE TABLE $table (" .
-                $this->id() . "VARCHAR(26) NOT NULL," .
-                $this->payload() . "BYTEA NOT NULL," .
-                $this->sequenceNumber() . "BIGINT," .
-                $this->actorName() . "VARCHAR(255)," .
-                $this->created() . "TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP," .
-                "PRIMARY KEY (" . $this->id() . ")," .
-                "UNIQUE (" . $this->id() . ")," .
-                "UNIQUE (" . $this->actorName() . "," . $this->sequenceNumber() . ")" .
-                ");";
+                $this->id() . 'VARCHAR(26) NOT NULL,' .
+                $this->payload() . 'BYTEA NOT NULL,' .
+                $this->sequenceNumber() . 'BIGINT,' .
+                $this->actorName() . 'VARCHAR(255),' .
+                $this->created() . 'TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,' .
+                'PRIMARY KEY (' . $this->id() . '),' .
+                'UNIQUE (' . $this->id() . '),' .
+                'UNIQUE (' . $this->actorName() . ',' . $this->sequenceNumber() . ')' .
+                ');';
         }
+
         return $createTables;
     }
 }

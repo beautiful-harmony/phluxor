@@ -12,37 +12,26 @@ final class RingBuffer
     private array $buffer;
     private int $mod;
 
-    /**
-     * @param int $initialSize
-     * @param int $head
-     * @param int $tail
-     */
     public function __construct(
         int $initialSize,
         private int $head = 0,
-        private int $tail = 0
+        private int $tail = 0,
     ) {
         $this->buffer = array_fill(0, $initialSize, null);
-        $this->mod = $initialSize;
+        $this->mod    = $initialSize;
     }
 
-    /**
-     * @return array<int, mixed>
-     */
+    /** @return array<int, mixed> */
     public function getBuffer(): array
     {
         return $this->buffer;
     }
 
-    /**
-     * @param array<int, mixed> $newBuffer
-     * @param int $newMod
-     * @return void
-     */
+    /** @param array<int, mixed> $newBuffer */
     public function replaceBuffer(array $newBuffer, int $newMod): void
     {
         $this->buffer = $newBuffer;
-        $this->mod = $newMod;
+        $this->mod    = $newMod;
     }
 
     public function getMod(): int

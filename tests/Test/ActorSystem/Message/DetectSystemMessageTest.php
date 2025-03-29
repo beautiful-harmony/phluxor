@@ -24,17 +24,17 @@ class DetectSystemMessageTest extends TestCase
                 'expected' => true,
             ],
             [
-                'message' => "string",
+                'message' => 'string',
                 'expected' => false,
             ],
             [
-                'message' => "Stop",
+                'message' => 'Stop',
                 'expected' => false,
             ],
             [
-                'message' => new Continuation('', fn() => null),
+                'message' => new Continuation('', static fn () => null),
                 'expected' => true,
-            ]
+            ],
         ];
         foreach ($messages as $message) {
             $autoReceiveMessage = new DetectSystemMessage($message['message']);

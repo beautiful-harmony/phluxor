@@ -9,26 +9,28 @@ use Phluxor\Persistence\PgSql\Connection;
 use Phluxor\Persistence\PgSql\Dsn;
 use PHPUnit\Framework\TestCase;
 
+use function assert;
+use function Swoole\Coroutine\go;
 use function Swoole\Coroutine\run;
 
 class PgSqlConnectionTest extends TestCase
 {
     public function testConnection(): void
     {
-        run(function () {
-            \Swoole\Coroutine\go(function () {
+        run(function (): void {
+            go(function (): void {
                 $pool = new Connection(
                     new Dsn(
                         '127.0.0.1',
                         5432,
                         'sample',
                         'postgres',
-                        'postgres'
-                    )
+                        'postgres',
+                    ),
                 );
-                /** @var PDO $conn */
                 $conn = $pool->proxy();
-                $st = $conn->query("SELECT NOW()");
+                assert($conn instanceof PDO);
+                $st = $conn->query('SELECT NOW()');
                 $this->assertNotFalse($st->fetchAll());
             });
         });

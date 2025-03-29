@@ -11,29 +11,27 @@ use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
 
+use function strlen;
+
 class ShortUuidTest extends TestCase
 {
     private ShortUuid $shortUuid;
 
-    public function setUp() : void
+    public function setUp(): void
     {
         $this->shortUuid = new ShortUuid();
     }
 
-    /**
-     * @dataProvider uuidProvider
-     */
+    /** @dataProvider uuidProvider */
     public function testShouldEncodeAGivenUuid(
         UuidInterface $uuid,
-        string $expectedShortUuid
+        string $expectedShortUuid,
     ): void {
         $shortUuid = $this->shortUuid->encode($uuid);
         $this->assertSame($expectedShortUuid, $shortUuid);
     }
 
-    /**
-     * @return array<int, array<string|UuidInterface>>
-     */
+    /** @return array<int, array<string|UuidInterface>> */
     public static function uuidProvider(): array
     {
         return [
@@ -42,20 +40,16 @@ class ShortUuidTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider shortUuidProvider
-     */
+    /** @dataProvider shortUuidProvider */
     public function testShouldDecodeAGivenShortUuid(
         string $shortUuid,
-        UuidInterface $expectedUuid
+        UuidInterface $expectedUuid,
     ): void {
         $uuid = $this->shortUuid->decode($shortUuid);
         $this->assertTrue($expectedUuid->equals($uuid));
     }
 
-    /**
-     * @return array<int, array<string|UuidInterface>>
-     */
+    /** @return array<int, array<string|UuidInterface>> */
     public static function shortUuidProvider(): array
     {
         return [

@@ -12,27 +12,20 @@ use Phluxor\ActorSystem\Ref;
 
 readonly class DefaultRootContextSender implements SenderFunctionInterface
 {
-    /**
-     * @param ActorSystem $actorSystem
-     */
     public function __construct(
-        private ActorSystem $actorSystem
+        private ActorSystem $actorSystem,
     ) {
     }
 
-    /**
-     * @param SenderInterface $context
-     * @param Ref|null $target
-     * @param MessageEnvelope $messageEnvelope
-     * @return void
-     */
     public function __invoke(
         SenderInterface $context,
-        ?Ref $target,
-        MessageEnvelope $messageEnvelope
+        Ref|null $target,
+        MessageEnvelope $messageEnvelope,
     ): void {
-        if ($target instanceof Ref) {
-            $target->sendUserMessage($this->actorSystem, $messageEnvelope);
+        if (! ($target instanceof Ref)) {
+            return;
         }
+
+        $target->sendUserMessage($this->actorSystem, $messageEnvelope);
     }
 }

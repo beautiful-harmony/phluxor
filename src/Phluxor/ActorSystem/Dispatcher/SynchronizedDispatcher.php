@@ -9,7 +9,7 @@ use Closure;
 readonly class SynchronizedDispatcher implements DispatcherInterface
 {
     public function __construct(
-        private int $throughput = 0
+        private int $throughput = 0,
     ) {
     }
 

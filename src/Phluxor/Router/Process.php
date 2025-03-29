@@ -12,36 +12,41 @@ use Swoole\Lock;
 
 class Process implements ActorSystem\ProcessInterface
 {
-    private const int RUNNING = 0;
+    private const int RUNNING  = 0;
     private const int STOPPING = 1;
 
     public function __construct(
         private ActorSystem $actorSystem,
-        private ?StateInterface $state = null,
-        private ?Ref $parent = null,
-        private ?Ref $router = null,
+        private StateInterface|null $state = null,
+        private Ref|null $parent = null,
+        private Ref|null $router = null,
         private Lock $mutex = new Lock(Lock::MUTEX),
         private RefSet $watchers = new RefSet(),
         private Long $stopping = new Long(self::RUNNING),
     ) {
     }
 
-    public function sendUserMessage(?Ref $pid, mixed $message): void
+    public function sendUserMessage(Ref|null $pid, mixed $message): void
     {
         $envelope = ActorSystem\Message\MessageEnvelope::unwrapEnvelope($message);
-        $msg = $envelope['message'];
+        $msg      = $envelope['message'];
         if ($msg instanceof ActorSystem\ProtoBuf\PoisonPill) {
             $this->poison($pid);
+
             return;
         }
-        if (!(new RouterMessage($msg))->isManagementMessage()) {
+
+        if (! (new RouterMessage($msg))->isManagementMessage()) {
             $this->state->routeMessage($message);
+
             return;
         }
+
         $r = $this->actorSystem->getProcessRegistry()->get($this->router);
-        if (!$r->isProcess()) {
+        if (! $r->isProcess()) {
             return;
         }
+
         $r->getProcess()->sendUserMessage($pid, $message);
     }
 
@@ -49,18 +54,19 @@ class Process implements ActorSystem\ProcessInterface
     {
         switch (true) {
             case $message instanceof ActorSystem\ProtoBuf\Watch:
-                if ($this->stopping->get() == self::STOPPING) {
+                if ($this->stopping->get() === self::STOPPING) {
                     $r = $this->actorSystem->getProcessRegistry()->get($message->getWatcher());
                     if ($r->isProcess()) {
                         $watcher = $message->getWatcher();
-                        if ($watcher != null) {
+                        if ($watcher !== null) {
                             $r->getProcess()->sendSystemMessage(
                                 new Ref($watcher),
-                                new ActorSystem\ProtoBuf\Terminated(['who' => $pid])
+                                new ActorSystem\ProtoBuf\Terminated(['who' => $pid]),
                             );
                         }
                     }
                 }
+
                 $this->mutex->lock();
                 $this->watchers->add(new Ref($message->getWatcher()));
                 $this->mutex->unlock();
@@ -73,20 +79,25 @@ class Process implements ActorSystem\ProcessInterface
             case $message instanceof ActorSystem\ProtoBuf\Stop:
                 $terminate = new ActorSystem\ProtoBuf\Terminated(['who' => $pid]);
                 $this->mutex->lock();
-                $this->watchers->forEach(function (int $_, Ref $ref) use ($terminate) {
-                    if (!$ref->equal($this->parent)) {
-                        $r = $this->actorSystem->getProcessRegistry()->get($ref);
-                        if ($r->isProcess()) {
-                            $r->getProcess()->sendSystemMessage($ref, $terminate);
-                        }
+                $this->watchers->forEach(function (int $_, Ref $ref) use ($terminate): void {
+                    if ($ref->equal($this->parent)) {
+                        return;
                     }
+
+                    $r = $this->actorSystem->getProcessRegistry()->get($ref);
+                    if (! $r->isProcess()) {
+                        return;
+                    }
+
+                    $r->getProcess()->sendSystemMessage($ref, $terminate);
                 });
-                if ($this->parent != null) {
+                if ($this->parent !== null) {
                     $r = $this->actorSystem->getProcessRegistry()->get($this->parent);
                     if ($r->isProcess()) {
                         $r->getProcess()->sendSystemMessage($this->parent, $terminate);
                     }
                 }
+
                 $this->mutex->unlock();
                 break;
             default:
@@ -94,6 +105,7 @@ class Process implements ActorSystem\ProcessInterface
                 if ($r->isProcess()) {
                     $r->getProcess()->sendSystemMessage($pid, $message);
                 }
+
                 break;
         }
     }
@@ -104,6 +116,7 @@ class Process implements ActorSystem\ProcessInterface
         if ($current === self::STOPPING) {
             return;
         }
+
         $this->stopping->cmpset($current, self::STOPPING);
         $this->actorSystem->root()->stopFuture($this->router)->wait();
         $this->actorSystem->getProcessRegistry()->remove($pid);
@@ -116,6 +129,7 @@ class Process implements ActorSystem\ProcessInterface
         if ($current === self::STOPPING) {
             return;
         }
+
         $this->stopping->cmpset($current, self::STOPPING);
         $this->actorSystem->root()->poisonFuture($this->router)->wait();
         $this->actorSystem->getProcessRegistry()->remove($pid);
@@ -127,11 +141,7 @@ class Process implements ActorSystem\ProcessInterface
         $this->state = $state;
     }
 
-    /**
-     * @param Ref|null $parent
-     * @return void
-     */
-    public function setParent(?Ref $parent): void
+    public function setParent(Ref|null $parent): void
     {
         $this->parent = $parent;
     }

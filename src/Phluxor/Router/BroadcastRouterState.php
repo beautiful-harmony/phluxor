@@ -13,14 +13,14 @@ class BroadcastRouterState implements StateInterface
 {
     public function __construct(
         private RefSet $routees = new RefSet(),
-        private ?SenderInterface $sender = null
+        private SenderInterface|null $sender = null,
     ) {
     }
 
     public function routeMessage(mixed $message): void
     {
         $this->routees->forEach(
-            fn(int $int, Ref $ref) => $this->sender->send($ref, $message)
+            fn (int $int, Ref $ref) => $this->sender->send($ref, $message),
         );
     }
 

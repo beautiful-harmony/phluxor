@@ -6,13 +6,9 @@ namespace Phluxor\ActorSystem;
 
 final readonly class QueueResult
 {
-    /**
-     * @param mixed $buffer
-     * @param bool $isOk
-     */
     public function __construct(
         private mixed $buffer,
-        private bool $isOk
+        private bool $isOk,
     ) {
     }
 

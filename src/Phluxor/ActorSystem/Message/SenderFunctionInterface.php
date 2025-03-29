@@ -9,15 +9,9 @@ use Phluxor\ActorSystem\Ref;
 
 interface SenderFunctionInterface
 {
-    /**
-     * @param SenderInterface $context
-     * @param Ref|null $target
-     * @param MessageEnvelope $messageEnvelope
-     * @return void
-     */
     public function __invoke(
         SenderInterface $context,
         Ref|null $target,
-        MessageEnvelope $messageEnvelope
+        MessageEnvelope $messageEnvelope,
     ): void;
 }

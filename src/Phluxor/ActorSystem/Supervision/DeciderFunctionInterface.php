@@ -8,9 +8,5 @@ use Phluxor\ActorSystem\Directive;
 
 interface DeciderFunctionInterface
 {
-    /**
-     * @param mixed $reason
-     * @return Directive
-     */
     public function __invoke(mixed $reason): Directive;
 }

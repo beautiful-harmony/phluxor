@@ -18,17 +18,18 @@ readonly class Connection
 
     public function proxy(): PDOProxy
     {
-        $pool = new PDOPool(
+        $pool   = new PDOPool(
             (new PDOConfig())
                 ->withDriver('sqlite')
-                ->withDbname($this->dbPath)
+                ->withDbname($this->dbPath),
         );
         $result = $pool->get();
-        if (!$result) {
+        if (! $result) {
             throw new ConnectionFailedException(
-                'connection filed.'
+                'connection filed.',
             );
         }
+
         return $result;
     }
 }

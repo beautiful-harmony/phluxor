@@ -6,15 +6,10 @@ namespace Phluxor\Persistence;
 
 readonly class SnapshotResult
 {
-    /**
-     * @param mixed $snapshot
-     * @param int $eventIndex
-     * @param bool $ok
-     */
     public function __construct(
         private mixed $snapshot,
         private int $eventIndex,
-        private bool $ok
+        private bool $ok,
     ) {
     }
 

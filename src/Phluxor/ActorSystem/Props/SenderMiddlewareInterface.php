@@ -13,9 +13,6 @@ use Phluxor\ActorSystem\Ref;
 
 interface SenderMiddlewareInterface
 {
-    /**
-     * @param Closure(SenderInterface|ContextInterface, Ref, MessageEnvelope): void|SenderFunctionInterface $next
-     * @return SenderFunctionInterface
-     */
+    /** @param Closure(SenderInterface|ContextInterface, Ref, MessageEnvelope): void|SenderFunctionInterface $next */
     public function __invoke(Closure|SenderFunctionInterface $next): SenderFunctionInterface;
 }

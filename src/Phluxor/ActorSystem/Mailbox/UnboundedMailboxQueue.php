@@ -10,11 +10,8 @@ use Phluxor\Buffer\Queue as RingBufferQueue;
 
 readonly class UnboundedMailboxQueue implements QueueInterface
 {
-    /**
-     * @param RingBufferQueue $userMailbox
-     */
     public function __construct(
-        private RingBufferQueue $userMailbox
+        private RingBufferQueue $userMailbox,
     ) {
     }
 

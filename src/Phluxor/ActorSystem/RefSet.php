@@ -7,6 +7,7 @@ namespace Phluxor\ActorSystem;
 use Closure;
 
 use function array_pop;
+use function count;
 
 class RefSet
 {
@@ -28,20 +29,13 @@ class RefSet
         $this->lookup = [];
     }
 
-    /**
-     * @param Ref $pid
-     * @return string
-     */
     private function key(Ref $pid): string
     {
         $pidKey = new RefKey($pid->protobufPid()->getAddress(), $pid->protobufPid()->getId());
-        return (string)$pidKey;
+
+        return (string) $pidKey;
     }
 
-    /**
-     * @param Ref $pid
-     * @return int
-     */
     public function indexOf(Ref $pid): int
     {
         $k = $this->key($pid);
@@ -50,34 +44,25 @@ class RefSet
                 return $idx;
             }
         }
+
         return -1;
     }
 
-    /**
-     * @param Ref $v
-     * @return bool
-     */
     public function contains(Ref $v): bool
     {
         return isset($this->lookup[$this->key($v)]);
     }
 
-    /**
-     * @param Ref $pid
-     * @return void
-     */
     public function add(Ref $pid): void
     {
-        if (!$this->contains($pid)) {
-            $this->pids[] = $pid;
-            $this->lookup[$this->key($pid)] = count($this->pids) - 1;
+        if ($this->contains($pid)) {
+            return;
         }
+
+        $this->pids[]                   = $pid;
+        $this->lookup[$this->key($pid)] = count($this->pids) - 1;
     }
 
-    /**
-     * @param Ref $pid
-     * @return bool
-     */
     public function remove(Ref $pid): bool
     {
         $index = $this->indexOf($pid);
@@ -87,18 +72,19 @@ class RefSet
 
         unset($this->lookup[$this->key($pid)]);
         if ($index < count($this->pids) - 1) {
-            $lastPID = $this->pids[count($this->pids) - 1];
-            $this->pids[$index] = $lastPID;
+            $lastPID                            = $this->pids[count($this->pids) - 1];
+            $this->pids[$index]                 = $lastPID;
             $this->lookup[$this->key($lastPID)] = $index;
         }
 
         array_pop($this->pids);
+
         return true;
     }
 
     public function clear(): void
     {
-        $this->pids = [];
+        $this->pids   = [];
         $this->lookup = [];
     }
 
@@ -112,18 +98,13 @@ class RefSet
         return $this->len() === 0;
     }
 
-    /**
-     * @return Ref[]
-     */
+    /** @return Ref[] */
     public function values(): array
     {
         return $this->pids;
     }
 
-    /**
-     * @param Closure(int, Ref): void $f
-     * @return void
-     */
+    /** @param Closure(int, Ref): void $f */
     public function forEach(Closure $f): void
     {
         foreach ($this->pids as $index => $pid) {
@@ -131,7 +112,7 @@ class RefSet
         }
     }
 
-    public function get(int $index): ?Ref
+    public function get(int $index): Ref|null
     {
         return $this->pids[$index] ?? null;
     }

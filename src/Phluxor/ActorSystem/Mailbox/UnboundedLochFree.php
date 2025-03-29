@@ -14,7 +14,7 @@ class UnboundedLochFree
     public function __construct(
         private readonly MspcQueue $queue = new MspcQueue(),
         private readonly MspcQueue $systemQueue = new MspcQueue(),
-        MailboxMiddlewareInterface ...$mailboxMiddleware
+        MailboxMiddlewareInterface ...$mailboxMiddleware,
     ) {
         $this->mailboxMiddleware = $mailboxMiddleware;
     }
@@ -24,7 +24,7 @@ class UnboundedLochFree
         return new DefaultMailbox(
             $this->queue,
             $this->systemQueue,
-            $this->mailboxMiddleware
+            $this->mailboxMiddleware,
         );
     }
 }

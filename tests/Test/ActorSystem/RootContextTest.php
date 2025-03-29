@@ -13,8 +13,8 @@ class RootContextTest extends TestCase
 {
     public function testRootContext(): void
     {
-        run(function () {
-            go(function () {
+        run(function (): void {
+            go(function (): void {
                 $system = ActorSystem::create();
                 $this->assertInstanceOf(ActorSystem::class, $system->root()->actorSystem());
                 $this->assertInstanceOf(ActorSystem\RootContext::class, $system->root());

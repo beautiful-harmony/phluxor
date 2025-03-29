@@ -13,22 +13,18 @@ use Swoole\Timer;
 
 class ActorContextExtras
 {
-    /** @var RestartStatistics|null */
     private RestartStatistics|null $rs = null;
 
-    /** @var Closure|null  */
     private Closure|null $timer = null;
 
-    /** @var RefSet */
     private RefSet $children;
 
-    /** @var RefSet */
     private RefSet $watchers;
 
     /** @var int|bool|null */
     private int|bool|null $receiveTimeoutTimer = null;
 
-    private ?SinglyLinkedList $stash = null;
+    private SinglyLinkedList|null $stash = null;
 
     public function __construct(
         private readonly ContextInterface $context,
@@ -48,30 +44,20 @@ class ActorContextExtras
         return $this->extensions;
     }
 
-    /**
-     * @return RestartStatistics
-     */
     public function restartStats(): RestartStatistics
     {
-        if ($this->rs == null) {
+        if ($this->rs === null) {
             $this->rs = new RestartStatistics();
         }
+
         return $this->rs;
     }
 
-    /**
-     * @param Ref $pid
-     * @return void
-     */
     public function addChild(Ref $pid): void
     {
         $this->children->add($pid);
     }
 
-    /**
-     * @param Ref $pid
-     * @return void
-     */
     public function removeChild(Ref $pid): void
     {
         $this->children->remove($pid);
@@ -92,27 +78,17 @@ class ActorContextExtras
         $this->stash = null;
     }
 
-    /**
-     * @return Ref[]
-     */
+    /** @return Ref[] */
     public function childrenValues(): array
     {
         return $this->children->values();
     }
 
-    /**
-     * @param Ref $pid
-     * @return void
-     */
     public function watch(Ref $pid): void
     {
         $this->watchers->add($pid);
     }
 
-    /**
-     * @param Ref $pid
-     * @return void
-     */
     public function unwatch(Ref $pid): void
     {
         $this->watchers->remove($pid);
@@ -123,35 +99,35 @@ class ActorContextExtras
         return $this->watchers;
     }
 
-    /**
-     * @param int $seconds
-     * @param Closure(): void $timer
-     * @return void
-     */
+    /** @param Closure(): void $timer */
     public function initReceiveTimeoutTimer(int $seconds, Closure $timer): void
     {
-        $this->timer = $timer;
+        $this->timer               = $timer;
         $this->receiveTimeoutTimer = Timer::after($seconds * 1000, $timer);
     }
 
     public function resetReceiveTimeoutTimer(int $seconds): void
     {
-        if ($this->receiveTimeoutTimer == null) {
+        if ($this->receiveTimeoutTimer === null) {
             return;
         }
-        if ($this->timer == null) {
+
+        if ($this->timer === null) {
             return;
         }
+
         Timer::clear($this->receiveTimeoutTimer);
         $this->receiveTimeoutTimer = Timer::after($seconds * 1000, $this->timer);
     }
 
     public function killReceiveTimeoutTimer(): void
     {
-        if ($this->receiveTimeoutTimer !== null) {
-            Timer::clear($this->receiveTimeoutTimer);
-            $this->receiveTimeoutTimer = null;
+        if ($this->receiveTimeoutTimer === null) {
+            return;
         }
+
+        Timer::clear($this->receiveTimeoutTimer);
+        $this->receiveTimeoutTimer = null;
     }
 
     public function receiveTimeoutTimer(): int|null
@@ -161,9 +137,10 @@ class ActorContextExtras
 
     public function stopReceiveTimeoutTimer(): void
     {
-        if ($this->receiveTimeoutTimer == null) {
+        if ($this->receiveTimeoutTimer === null) {
             return;
         }
+
         Timer::clear($this->receiveTimeoutTimer);
     }
 }

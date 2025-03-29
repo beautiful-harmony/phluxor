@@ -15,19 +15,22 @@ class StubInvoker implements MessageInvokerInterface
     public function __construct(
         private int $count,
         private readonly int $max,
-        private readonly WaitGroup $waitGroup
+        private readonly WaitGroup $waitGroup,
     ) {
     }
 
     public function invokeSystemMessage(mixed $message): void
     {
         $this->count++;
-        if ($this->count == $this->max) {
+        if ($this->count === $this->max) {
             $this->waitGroup->done();
         }
-        if ($this->count > $this->max) {
-            echo "unexpected data\n";
+
+        if ($this->count <= $this->max) {
+            return;
         }
+
+        echo "unexpected data\n";
     }
 
     public function invokeUserMessage(mixed $message): void
@@ -37,12 +40,16 @@ class StubInvoker implements MessageInvokerInterface
             $handler = $this->handler;
             $handler($message);
         }
-        if ($this->count == $this->max) {
+
+        if ($this->count === $this->max) {
             $this->waitGroup->done();
         }
-        if ($this->count > $this->max) {
-            echo "unexpected data\n";
+
+        if ($this->count <= $this->max) {
+            return;
         }
+
+        echo "unexpected data\n";
     }
 
     public function escalateFailure(mixed $reason, mixed $message): void
@@ -52,6 +59,7 @@ class StubInvoker implements MessageInvokerInterface
     public function withUserMessageReceiveHandler(Closure $handler): MessageInvokerInterface
     {
         $this->handler = $handler;
+
         return $this;
     }
 }

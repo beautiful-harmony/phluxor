@@ -16,17 +16,18 @@ readonly class Connection
 
     public function proxy(): PDOProxy
     {
-        $pool = new PgSqlPool(
-            (string)$this->dsn,
+        $pool   = new PgSqlPool(
+            (string) $this->dsn,
             $this->dsn->username,
             $this->dsn->password,
         );
         $result = $pool->get();
-        if (!$result) {
+        if (! $result) {
             throw new ConnectionFailedException(
-                'connection filed.'
+                'connection filed.',
             );
         }
+
         return $result;
     }
 }

@@ -19,6 +19,9 @@ use RuntimeException;
 use Swoole\Atomic\Long;
 use Throwable;
 
+use function array_merge;
+use function count;
+use function get_debug_type;
 use function microtime;
 use function sprintf;
 
@@ -31,26 +34,16 @@ class ActorContext implements
 {
     use ActorSystem\Metrics\MetricsSystemTrait;
 
-    private const int stateAlive = 0;
+    private const int stateAlive      = 0;
     private const int stateRestarting = 1;
-    private const int stateStopping = 2;
-    private const int stateStopped = 3;
+    private const int stateStopping   = 2;
+    private const int stateStopped    = 3;
 
-    /** @var ActorContextExtras|null */
     private ActorContextExtras|null $extras = null;
 
     /** @var Long */
     private readonly Long $state;
 
-    /**
-     * @param ActorSystem $actorSystem
-     * @param Props $props
-     * @param Ref|null $parent
-     * @param ActorInterface|null $actor
-     * @param Ref|null $self
-     * @param DateInterval $receiveTimeout
-     * @param mixed|null $messageOrEnvelope
-     */
     public function __construct(
         private readonly ActorSystem $actorSystem,
         private readonly Props $props,
@@ -66,20 +59,19 @@ class ActorContext implements
 
     public function ensureExtras(): ActorContextExtras
     {
-        if ($this->extras == null) {
+        if ($this->extras === null) {
             $ctx = $this;
-            if ($this->props != null && $this->props->contextDecoratorChain() != null) {
-                $c = $this->props->contextDecoratorChain();
+            if ($this->props?->contextDecoratorChain() !== null) {
+                $c   = $this->props->contextDecoratorChain();
                 $ctx = $c($this);
             }
+
             $this->extras = new ActorContextExtras($ctx);
         }
+
         return $this->extras;
     }
 
-    /**
-     * @return ActorSystem
-     */
     public function actorSystem(): ActorSystem
     {
         return $this->actorSystem;
@@ -100,10 +92,6 @@ class ActorContext implements
         return $this->self;
     }
 
-    /**
-     * @param Ref $pid
-     * @return void
-     */
     public function setSelf(Ref $pid): void
     {
         $this->self = $pid;
@@ -116,11 +104,12 @@ class ActorContext implements
 
     public function actor(): ActorInterface
     {
-        if ($this->actor == null) {
+        if ($this->actor === null) {
             throw new ActorSystem\Exception\ActorErrorException(
-                "should not call actor before incarnateActor()"
+                'should not call actor before incarnateActor()',
             );
         }
+
         return $this->actor;
     }
 
@@ -129,48 +118,42 @@ class ActorContext implements
         return $this->receiveTimeout;
     }
 
-    /**
-     * @return Ref[]
-     */
+    /** @return Ref[] */
     public function children(): array
     {
-        if ($this->extras == null) {
+        if ($this->extras === null) {
             return [];
         }
+
         return $this->extras->childrenValues();
     }
 
-    /**
-     * @param mixed $response
-     * @return void
-     */
     public function respond(mixed $response): void
     {
-        if ($this->sender() == null) {
+        if ($this->sender() === null) {
             $this->actorSystem->getDeadLetter()->sendUserMessage(null, $response);
+
             return;
         }
+
         $this->send($this->sender(), $response);
     }
 
     public function stash(): void
     {
         $extras = $this->ensureExtras();
-        if ($extras->stash() == null) {
+        if ($extras->stash() === null) {
             $extras->registerStash(new SinglyLinkedList());
         }
+
         $extras->stash()?->push($this->message());
     }
 
-    /**
-     * @param Ref $pid
-     * @return void
-     */
     public function watch(Ref $pid): void
     {
         $pid->sendSystemMessage(
             $this->actorSystem,
-            new ActorSystem\ProtoBuf\Watch(['watcher' => $this->self()?->protobufPid()])
+            new ActorSystem\ProtoBuf\Watch(['watcher' => $this->self()?->protobufPid()]),
         );
     }
 
@@ -178,7 +161,7 @@ class ActorContext implements
     {
         $pid->sendSystemMessage(
             $this->actorSystem,
-            new ActorSystem\ProtoBuf\Unwatch(['watcher' => $this->self()?->protobufPid()])
+            new ActorSystem\ProtoBuf\Unwatch(['watcher' => $this->self()?->protobufPid()]),
         );
     }
 
@@ -187,73 +170,81 @@ class ActorContext implements
         if ($dateInterval->s < 1) {
             $dateInterval = new DateInterval('PT0S');
         }
-        if ($dateInterval->s == $this->receiveTimeout->s) {
+
+        if ($dateInterval->s === $this->receiveTimeout->s) {
             return;
         }
+
         $this->receiveTimeout = $dateInterval;
         $this->ensureExtras();
-        if ($this->extras != null) {
-            $this->extras->stopReceiveTimeoutTimer();
-            if ($this->receiveTimeout->s > 0) {
-                if ($this->extras->receiveTimeoutTimer() == null) {
-                    $this->extras->initReceiveTimeoutTimer($dateInterval->s, function () {
-                        $this->receiveTimeoutHandler();
-                    });
-                } else {
-                    $this->extras->resetReceiveTimeoutTimer($dateInterval->s);
-                }
-            }
+        if ($this->extras === null) {
+            return;
+        }
+
+        $this->extras->stopReceiveTimeoutTimer();
+        if ($this->receiveTimeout->s <= 0) {
+            return;
+        }
+
+        if ($this->extras->receiveTimeoutTimer() === null) {
+            $this->extras->initReceiveTimeoutTimer($dateInterval->s, function (): void {
+                $this->receiveTimeoutHandler();
+            });
+        } else {
+            $this->extras->resetReceiveTimeoutTimer($dateInterval->s);
         }
     }
 
     public function cancelReceiveTimeout(): void
     {
-        if ($this->extras == null || $this->ensureExtras()->receiveTimeoutTimer() == null) {
+        if ($this->extras === null || $this->ensureExtras()->receiveTimeoutTimer() === null) {
             return;
         }
+
         $this->ensureExtras()->killReceiveTimeoutTimer();
         $this->receiveTimeout = new DateInterval('PT0S');
     }
 
     public function receiveTimeoutHandler(): void
     {
-        if ($this->extras != null && $this->extras->receiveTimeoutTimer() != null) {
-            $this->cancelReceiveTimeout();
-            $this->send($this->self, new ActorSystem\Message\ReceiveTimeout());
+        if ($this->extras?->receiveTimeoutTimer() === null) {
+            return;
         }
+
+        $this->cancelReceiveTimeout();
+        $this->send($this->self, new ActorSystem\Message\ReceiveTimeout());
     }
 
-    /**
-     * @param Ref $pid
-     * @return void
-     */
     public function forward(Ref $pid): void
     {
         if ($this->messageOrEnvelope instanceof ActorSystem\Message\SystemMessageInterface) {
             $this->logger()->error(
-                "SystemMessage cannot be forwarded",
-                ['message' => $this->messageOrEnvelope]
+                'SystemMessage cannot be forwarded',
+                ['message' => $this->messageOrEnvelope],
             );
+
             return;
         }
+
         $this->sendUserMessage($pid, $this->messageOrEnvelope);
     }
 
     public function reenterAfter(Future $future, ReenterAfterInterface $reenterAfter): void
     {
-        $r = $future->result();
-        $wrapper = fn() => $reenterAfter($r->value(), $r->error());
+        $r       = $future->result();
+        $wrapper = static fn () => $reenterAfter($r->value(), $r->error());
         $message = $this->messageOrEnvelope;
-        if ($this->self == null) {
-            throw new ActorSystem\Exception\ActorReferenceErrorException("self is null");
+        if ($this->self === null) {
+            throw new ActorSystem\Exception\ActorReferenceErrorException('self is null');
         }
-        $future->continueWith(function (FutureResult $result) use ($wrapper, $message) {
+
+        $future->continueWith(function (FutureResult $result) use ($wrapper, $message): void {
             $this->self?->sendSystemMessage(
                 $this->actorSystem,
                 new ActorSystem\Message\Continuation(
                     message: $message,
-                    function: $wrapper
-                )
+                    function: $wrapper,
+                ),
             );
         });
     }
@@ -268,210 +259,228 @@ class ActorContext implements
         return MessageEnvelope::unwrapEnvelopeHeader($this->messageOrEnvelope);
     }
 
-    public function send(?Ref $pid, mixed $message): void
+    public function send(Ref|null $pid, mixed $message): void
     {
         $this->sendUserMessage($pid, $message);
     }
 
-    public function sendUserMessage(?Ref $pid, mixed $message): void
+    public function sendUserMessage(Ref|null $pid, mixed $message): void
     {
-        if ($this->props->senderMiddlewareChain() != null) {
+        if ($this->props->senderMiddlewareChain() !== null) {
             $chain = $this->props->senderMiddlewareChain();
             $chain($this->ensureExtras()->context(), $pid, MessageEnvelope::wrapEnvelope($message));
+
             return;
         }
-        if ($pid != null) {
+
+        if ($pid !== null) {
             $pid->sendUserMessage($this->actorSystem, $message);
+
             return;
         }
+
         $this->actorSystem->getDeadLetter()->sendUserMessage($pid, $message);
     }
 
     /**
      * tell & ask
-     * @param Ref|null $pid
-     * @param mixed $message
-     * @return void
      */
-    public function request(?Ref $pid, mixed $message): void
+    public function request(Ref|null $pid, mixed $message): void
     {
         $this->sendUserMessage($pid, new MessageEnvelope(null, $message, $this->self()));
     }
 
     /**
      * specify sender pid / actor
-     * @param Ref|null $pid
-     * @param mixed $message
-     * @param Ref|null $sender
-     * @return void
      */
-    public function requestWithCustomSender(?Ref $pid, mixed $message, ?Ref $sender): void
+    public function requestWithCustomSender(Ref|null $pid, mixed $message, Ref|null $sender): void
     {
         $this->sendUserMessage($pid, new MessageEnvelope(null, $message, $sender));
     }
 
-    public function requestFuture(?Ref $pid, mixed $message, int $duration): Future
+    public function requestFuture(Ref|null $pid, mixed $message, int $duration): Future
     {
         $future = Future::create($this->actorSystem, $duration);
-        if ($future->pid() == null) {
-            $this->logger()->error("request future: pid is null");
+        if ($future->pid() === null) {
+            $this->logger()->error('request future: pid is null');
+
             return $future;
         }
+
         $this->sendUserMessage($pid, new MessageEnvelope(null, $message, $future->pid()));
+
         return $future;
     }
 
-    public function receive(?MessageEnvelope $envelope): void
+    public function receive(MessageEnvelope|null $envelope): void
     {
         $this->messageOrEnvelope = $envelope;
         $this->defaultReceive();
-        if ($envelope !== null) {
-            $messageType = $envelope->getMessage();
-            if (!$messageType instanceof RequestSnapshot) {
-                $this->messageOrEnvelope = null;
-            }
+        if ($envelope === null) {
+            return;
         }
+
+        $messageType = $envelope->getMessage();
+        if ($messageType instanceof RequestSnapshot) {
+            return;
+        }
+
+        $this->messageOrEnvelope = null;
     }
 
     public function defaultReceive(): void
     {
-        if ($this->actor == null) {
-            throw new ActorSystem\Exception\ActorErrorException("actor is null");
+        if ($this->actor === null) {
+            throw new ActorSystem\Exception\ActorErrorException('actor is null');
         }
+
         $msg = $this->message();
         switch (true) {
             case $msg instanceof ActorSystem\ProtoBuf\PoisonPill:
                 $this->stop($this->self);
                 break;
             case $msg instanceof AutoRespondInterface:
-                if ($this->props->contextDecoratorChain() != null) {
+                if ($this->props->contextDecoratorChain() !== null) {
                     $this->actor->receive($this->ensureExtras()->context());
                 } else {
                     $this->actor->receive($this);
                 }
+
                 $this->respond($msg->getAutoResponse($this));
                 break;
             default:
-                if ($this->props->contextDecoratorChain() != null) {
+                if ($this->props->contextDecoratorChain() !== null) {
                     $this->actor->receive($this->ensureExtras()->context());
+
                     return;
                 }
+
                 $this->actor->receive($this);
         }
     }
 
-    /**
-     * @param Props $props
-     * @return Ref|null
-     */
     public function spawn(Props $props): Ref|null
     {
         $result = $this->spawnNamed($props, $this->actorSystem->getProcessRegistry()->nextId());
-        if ($result->isError() != null) {
+        if ($result->isError() !== null) {
             throw $result->isError();
         }
+
         return $result->getRef();
     }
 
     public function spawnPrefix(Props $props, string $prefix): Ref|null
     {
         $result = $this->spawnNamed($props, $prefix . $this->actorSystem->getProcessRegistry()->nextId());
-        if ($result->isError() != null) {
+        if ($result->isError() !== null) {
             throw $result->isError();
         }
+
         return $result->getRef();
     }
 
     public function spawnNamed(Props $props, string $name): SpawnResult
     {
-        if ($props->getGuardianStrategy() != null) {
-            throw new RuntimeException("props used to spawn child cannot have GuardianStrategy");
+        if ($props->getGuardianStrategy() !== null) {
+            throw new RuntimeException('props used to spawn child cannot have GuardianStrategy');
         }
-        $id = "";
-        if ($this->self != null) {
+
+        $id = '';
+        if ($this->self !== null) {
             $id = $this->self->protobufPid()->getId();
         }
+
         $chain = $this->props->spawnMiddlewareChain();
-        if ($chain != null) {
-            $r = $chain($this->actorSystem, sprintf("%s/%s", $id, $name), $props, $this);
+        if ($chain !== null) {
+            $r = $chain($this->actorSystem, sprintf('%s/%s', $id, $name), $props, $this);
         } else {
-            $r = $props->spawn($this->actorSystem, sprintf("%s/%s", $id, $name), $this);
+            $r = $props->spawn($this->actorSystem, sprintf('%s/%s', $id, $name), $this);
         }
-        if ($r->getRef() == null) {
-            throw new ActorSystem\Exception\SpawnErrorException("spawned child pid is null");
+
+        if ($r->getRef() === null) {
+            throw new ActorSystem\Exception\SpawnErrorException('spawned child pid is null');
         }
+
         $this->ensureExtras()->addChild($r->getRef());
+
         return $r;
     }
 
     /**
      * stop will stop actor immediately regardless of existing user messages in mailbox.
-     * @param Ref|null $pid
-     * @return void
      */
-    public function stop(?Ref $pid): void
+    public function stop(Ref|null $pid): void
     {
-        if ($pid == null) {
+        if ($pid === null) {
             return;
         }
+
         $this->handleActorStoppedMetrics();
         $pid->ref($this->actorSystem)?->stop($pid);
     }
 
     /**
      * stopFuture will stop actor immediately regardless of existing user messages in mailbox, and return its future.
-     * @param Ref|null $pid
-     * @return Future|null
      */
-    public function stopFuture(?Ref $pid): Future|null
+    public function stopFuture(Ref|null $pid): Future|null
     {
-        if ($pid == null) {
+        if ($pid === null) {
             return null;
         }
+
         $future = Future::create($this->actorSystem, 10);
-        if ($future->pid() == null) {
-            $this->logger()->error("stop future: pid is null");
+        if ($future->pid() === null) {
+            $this->logger()->error('stop future: pid is null');
+
             return null;
         }
+
         $pid->sendSystemMessage(
             $this->actorSystem,
             new ActorSystem\ProtoBuf\Watch([
-                'watcher' => $future->pid()->protobufPid()
-            ])
+                'watcher' => $future->pid()->protobufPid(),
+            ]),
         );
         $this->stop($pid);
+
         return $future;
     }
 
-    public function poison(?Ref $pid): void
+    public function poison(Ref|null $pid): void
     {
-        if ($pid == null) {
-            $this->logger()->error("poison pid is null");
+        if ($pid === null) {
+            $this->logger()->error('poison pid is null');
+
             return;
         }
+
         $pid->sendUserMessage(
             $this->actorSystem,
-            new ActorSystem\ProtoBuf\PoisonPill()
+            new ActorSystem\ProtoBuf\PoisonPill(),
         );
     }
 
-    public function poisonFuture(?Ref $pid): Future|null
+    public function poisonFuture(Ref|null $pid): Future|null
     {
-        if ($pid == null) {
+        if ($pid === null) {
             return null;
         }
+
         $future = Future::create($this->actorSystem, 10);
-        if ($future->pid() == null) {
-            $this->logger()->error("poison future: pid is null");
+        if ($future->pid() === null) {
+            $this->logger()->error('poison future: pid is null');
+
             return null;
         }
+
         $pid->sendSystemMessage(
             $this->actorSystem,
             new ActorSystem\ProtoBuf\Watch([
-                'watcher' => $future->pid()->protobufPid()
-            ])
+                'watcher' => $future->pid()->protobufPid(),
+            ]),
         );
         $this->poison($pid);
+
         return $future;
     }
 
@@ -480,36 +489,44 @@ class ActorContext implements
         if ($this->state->get() === self::stateStopped) {
             return;
         }
+
         $influenceTimeout = true;
         if ($this->receiveTimeout->s > 0) {
-            $influenceTimeout = !($message instanceof ActorSystem\Message\NotInfluenceReceiveTimeoutInterface);
+            $influenceTimeout = ! ($message instanceof ActorSystem\Message\NotInfluenceReceiveTimeoutInterface);
             if ($influenceTimeout) {
                 $this->ensureExtras()->stopReceiveTimeoutTimer();
             }
         }
+
         if ($this->actorSystem->config()->metricsProvider() !== null) {
             $this->handleActorMessageReceiveMetricsRecord($message);
         } else {
             $this->processMessage($message);
         }
-        if ($this->receiveTimeout->s > 0 && $influenceTimeout) {
-            $this->ensureExtras()->resetReceiveTimeoutTimer($this->receiveTimeout->s);
+
+        if ($this->receiveTimeout->s <= 0 || ! $influenceTimeout) {
+            return;
         }
+
+        $this->ensureExtras()->resetReceiveTimeoutTimer($this->receiveTimeout->s);
     }
 
     private function processMessage(mixed $message): void
     {
         $receiverMiddlewareChain = $this->props->getReceiverMiddlewareChain();
-        if ($receiverMiddlewareChain != null) {
+        if ($receiverMiddlewareChain !== null) {
             $receiverMiddlewareChain(
                 $this->ensureExtras()->context(),
-                MessageEnvelope::wrapEnvelope($message)
+                MessageEnvelope::wrapEnvelope($message),
             );
+
             return;
         }
+
         $contextDecoratorChain = $this->props->contextDecoratorChain();
-        if ($contextDecoratorChain != null) {
+        if ($contextDecoratorChain !== null) {
             $this->ensureExtras()->context()->receive(MessageEnvelope::wrapEnvelope($message));
+
             return;
         }
 
@@ -525,21 +542,29 @@ class ActorContext implements
         $this->actor = $this->props->producer($this->actorSystem);
         // open telemetry
         $id = $this->actorSystem->metrics()?->extensionID();
-        if ($id != null) {
-            $metricsSystem = $this->actorSystem->extensions()->get($id);
-            if ($metricsSystem instanceof ActorSystem\Metrics) {
-                if ($metricsSystem->isEnabled()) {
-                    $instruments = $metricsSystem->metrics()
-                        ->find(PhluxorMetrics::INTERNAL_ACTOR_METRICS);
-                    if ($instruments instanceof ActorMetrics) {
-                        $instruments->getActorSpawnCounter()->add(
-                            1,
-                            $metricsSystem->commonLabels($this)
-                        );
-                    }
-                }
-            }
+        if ($id === null) {
+            return;
         }
+
+        $metricsSystem = $this->actorSystem->extensions()->get($id);
+        if (! ($metricsSystem instanceof ActorSystem\Metrics)) {
+            return;
+        }
+
+        if (! $metricsSystem->isEnabled()) {
+            return;
+        }
+
+        $instruments = $metricsSystem->metrics()
+            ->find(PhluxorMetrics::INTERNAL_ACTOR_METRICS);
+        if (! ($instruments instanceof ActorMetrics)) {
+            return;
+        }
+
+        $instruments->getActorSpawnCounter()->add(
+            1,
+            $metricsSystem->commonLabels($this),
+        );
     }
 
     public function invokeSystemMessage(mixed $message): void
@@ -548,6 +573,7 @@ class ActorContext implements
         if ($message instanceof QueueResult) {
             $msg = $message->value();
         }
+
         switch (true) {
             case $msg instanceof ActorSystem\Message\Continuation:
                 $this->messageOrEnvelope = $msg->getMessage();
@@ -576,23 +602,20 @@ class ActorContext implements
                 $this->handleRestart();
                 break;
             default:
-                $this->logger()->error("unknown system message", ['message' => $msg]);
+                $this->logger()->error('unknown system message', ['message' => $msg]);
         }
     }
 
-    /**
-     * @param Message\Failure|null $failure
-     * @return void
-     */
     private function handleRootFailure(ActorSystem\Message\Failure|null $failure): void
     {
-        if ($failure == null) {
+        if ($failure === null) {
             return;
         }
+
         $strategy = new ActorSystem\Strategy\OneForOneStrategy(
             maxNrOfRetries: 10,
             withinDuration: new DateInterval('PT10S'),
-            decider: new ActorSystem\Supervision\DefaultDecider()
+            decider: new ActorSystem\Supervision\DefaultDecider(),
         );
         $strategy->handleFailure(
             $this->actorSystem,
@@ -600,37 +623,41 @@ class ActorContext implements
             $failure->getWho(),
             new ActorSystem\Child\RestartStatistics(),
             $failure->getReason(),
-            $failure->getMessage()
+            $failure->getMessage(),
         );
     }
 
-    //
     private function handleWatch(ActorSystem\ProtoBuf\Watch $msg): void
     {
         $watcher = $msg->getWatcher();
-        if ($watcher != null) {
-            if ($this->state->get() >= self::stateStopping) {
-                (new Ref($watcher))->sendSystemMessage(
-                    $this->actorSystem,
-                    new ActorSystem\ProtoBuf\Terminated([
-                        'who' => $this->self?->protobufPid()
-                    ])
-                );
-            } else {
-                $this->ensureExtras()->watch(new Ref($watcher));
-            }
+        if ($watcher === null) {
+            return;
+        }
+
+        if ($this->state->get() >= self::stateStopping) {
+            (new Ref($watcher))->sendSystemMessage(
+                $this->actorSystem,
+                new ActorSystem\ProtoBuf\Terminated([
+                    'who' => $this->self?->protobufPid(),
+                ]),
+            );
+        } else {
+            $this->ensureExtras()->watch(new Ref($watcher));
         }
     }
 
     private function handleUnwatch(ActorSystem\ProtoBuf\Unwatch $msg): void
     {
-        if ($this->extras == null) {
+        if ($this->extras === null) {
             return;
         }
+
         $watcher = $msg->getWatcher();
-        if ($watcher != null) {
-            $this->extras->unwatch(new Ref($watcher));
+        if ($watcher === null) {
+            return;
         }
+
+        $this->extras->unwatch(new Ref($watcher));
     }
 
     private function handleRestart(): void
@@ -648,32 +675,33 @@ class ActorContext implements
         if ($this->state->get() >= self::stateStopping) {
             return;
         }
+
         $this->state->set(self::stateStopping);
         try {
             $this->invokeUserMessage(new ActorSystem\Message\Stopping());
         } catch (Throwable $e) {
-            $this->logger()->error("stopping error", ['exception' => $e->getTraceAsString()]);
+            $this->logger()->error('stopping error', ['exception' => $e->getTraceAsString()]);
         }
+
         $this->stopAllChildren();
         $this->tryRestartOrTerminate();
     }
 
     private function handleTerminated(ActorSystem\ProtoBuf\Terminated $msg): void
     {
-        if ($this->extras != null) {
+        if ($this->extras !== null) {
             $who = $msg->getWho();
-            if ($who != null) {
+            if ($who !== null) {
                 $this->extras->removeChild(new Ref($who));
             }
         }
+
         $this->invokeUserMessage($msg);
         $this->tryRestartOrTerminate();
     }
 
     /**
      * offload the supervision completely to the supervisor strategy.
-     * @param ActorSystem\Message\Failure $msg
-     * @return void
      */
     private function handleFailure(ActorSystem\Message\Failure $msg): void
     {
@@ -685,30 +713,33 @@ class ActorContext implements
                 $msg->getWho(),
                 $msg->getRestartStatistics(),
                 $msg->getReason(),
-                $msg->getMessage()
+                $msg->getMessage(),
             );
+
             return;
         }
+
         $this->props->getSupervisorStrategy()->handleFailure(
             $this->actorSystem,
             $this,
             $msg->getWho(),
             $msg->getRestartStatistics(),
             $msg->getReason(),
-            $msg->getMessage()
+            $msg->getMessage(),
         );
     }
 
     private function stopAllChildren(): void
     {
-        if ($this->extras == null) {
+        if ($this->extras === null) {
             return;
         }
+
         $pids = $this->extras->childrenValues();
         for ($i = count($pids) - 1; $i >= 0; $i--) {
             $pids[$i]->sendSystemMessage(
                 $this->actorSystem,
-                new ActorSystem\ProtoBuf\Stop()
+                new ActorSystem\ProtoBuf\Stop(),
             );
         }
     }
@@ -727,46 +758,45 @@ class ActorContext implements
         }
     }
 
-    /**
-     * @return void
-     */
     private function restart(): void
     {
         $this->incarnateActor();
         $this->self?->sendSystemMessage($this->actorSystem, new ActorSystem\Message\ResumeMailbox());
         $this->invokeUserMessage(new ActorSystem\Message\Started());
         $extras = $this->ensureExtras();
-        if ($extras->stash() != null) {
-            $size = $extras->stash()->length();
-            for ($i = 0; $i < $size; $i++) {
-                $msg = $extras->stash()->pop();
-                $this->invokeUserMessage($msg);
-            }
+        if ($extras->stash() === null) {
+            return;
+        }
+
+        $size = $extras->stash()->length();
+        for ($i = 0; $i < $size; $i++) {
+            $msg = $extras->stash()->pop();
+            $this->invokeUserMessage($msg);
         }
     }
 
     private function finalizeStop(): void
     {
-        if ($this->self != null) {
+        if ($this->self !== null) {
             $this->actorSystem->getProcessRegistry()->remove($this->self);
         }
+
         $this->invokeUserMessage(new ActorSystem\Message\Stopped());
 
         $otherStopped = new ActorSystem\ProtoBuf\Terminated([
-            'who' => $this->self?->protobufPid()
+            'who' => $this->self?->protobufPid(),
         ]);
         $this->extras?->watchers()->forEach(
-            function (int $index, Ref $pid) use ($otherStopped) {
+            function (int $index, Ref $pid) use ($otherStopped): void {
                 $pid->sendSystemMessage(
                     $this->actorSystem,
-                    $otherStopped
+                    $otherStopped,
                 );
-            }
+            },
         );
-        //
         $this->parent?->sendSystemMessage(
             $this->actorSystem,
-            $otherStopped
+            $otherStopped,
         );
         $this->state->set(self::stateStopped);
     }
@@ -777,25 +807,28 @@ class ActorContext implements
         if ($reason instanceof Throwable) {
             $reports = ['self' => $this->self, 'reason' => $reason, 'stack' => $reason->getTraceAsString()];
         }
-        $this->logger()->info("recovering", $reports);
+
+        $this->logger()->info('recovering', $reports);
         if ($this->actorSystem->config()->developerSupervisionLogging()) {
             $this->logger()->error(
-                "supervision",
-                ['actor' => $this->self, 'message' => $message, 'exception' => $reason]
+                'supervision',
+                ['actor' => $this->self, 'message' => $message, 'exception' => $reason],
             );
         }
-        if ($this->self == null) {
+
+        if ($this->self === null) {
             return;
         }
+
         $this->handleActorFailureMetrics();
         $failure = new ActorSystem\Message\Failure(
             who: $this->self,
             reason: $reason,
             restartStatistics: $this->ensureExtras()->restartStats(),
-            message: $message
+            message: $message,
         );
         $this->self->sendSystemMessage($this->actorSystem, new ActorSystem\Message\SuspendMailbox());
-        if ($this->parent == null) {
+        if ($this->parent === null) {
             $this->handleRootFailure($failure);
         } else {
             $this->parent->sendSystemMessage($this->actorSystem, $failure);
@@ -835,76 +868,87 @@ class ActorContext implements
 
     public function __toString(): string
     {
-        if ($this->self == null) {
-            return "";
+        if ($this->self === null) {
+            return '';
         }
+
         return $this->self->protobufPid()->serializeToString();
     }
 
-    /**
-     * @return void
-     */
     private function handleActorFailureMetrics(): void
     {
         $metricsSystem = $this->enabledMetricsSystem($this->actorSystem);
-        if ($metricsSystem) {
-            $instruments = $metricsSystem->metrics()->find(PhluxorMetrics::INTERNAL_ACTOR_METRICS);
-            if ($instruments instanceof ActorMetrics) {
-                $instruments->getActorFailureCount()->add(1, $metricsSystem->commonLabels($this));
-            }
+        if (! $metricsSystem) {
+            return;
         }
+
+        $instruments = $metricsSystem->metrics()->find(PhluxorMetrics::INTERNAL_ACTOR_METRICS);
+        if (! ($instruments instanceof ActorMetrics)) {
+            return;
+        }
+
+        $instruments->getActorFailureCount()->add(1, $metricsSystem->commonLabels($this));
     }
 
     private function handleActorMessageReceiveMetricsRecord(mixed $message): void
     {
         $metricsSystem = $this->enabledMetricsSystem($this->actorSystem);
-        if ($metricsSystem) {
-            $instruments = $metricsSystem->metrics()->find(PhluxorMetrics::INTERNAL_ACTOR_METRICS);
-            if ($instruments instanceof ActorMetrics) {
-                $start = microtime(true);
-                $this->processMessage($message);
-                $end = microtime(true);
-                $executionTime = $end - $start;
-                $instruments
-                    ->getActorMessageReceiveHistogram()
-                    ->record(
-                        $executionTime,
-                        array_merge($metricsSystem->commonLabels($this)->toArray(), [
-                            'messagetype' => get_debug_type($message),
-                        ])
-                    );
-            }
+        if (! $metricsSystem) {
+            return;
         }
+
+        $instruments = $metricsSystem->metrics()->find(PhluxorMetrics::INTERNAL_ACTOR_METRICS);
+        if (! ($instruments instanceof ActorMetrics)) {
+            return;
+        }
+
+        $start = microtime(true);
+        $this->processMessage($message);
+        $end           = microtime(true);
+        $executionTime = $end - $start;
+        $instruments
+            ->getActorMessageReceiveHistogram()
+            ->record(
+                $executionTime,
+                array_merge($metricsSystem->commonLabels($this)->toArray(), [
+                    'messagetype' => get_debug_type($message),
+                ]),
+            );
     }
 
-    /**
-     * @return void
-     */
     private function handleRestartedCountMetrics(): void
     {
         $metricsSystem = $this->enabledMetricsSystem($this->actorSystem);
-        if ($metricsSystem) {
-            $instruments = $metricsSystem->metrics()->find(PhluxorMetrics::INTERNAL_ACTOR_METRICS);
-            if ($instruments instanceof ActorMetrics) {
-                $instruments->getActorRestartedCounter()->add(
-                    1,
-                    $metricsSystem->commonLabels($this)
-                );
-            }
+        if (! $metricsSystem) {
+            return;
         }
+
+        $instruments = $metricsSystem->metrics()->find(PhluxorMetrics::INTERNAL_ACTOR_METRICS);
+        if (! ($instruments instanceof ActorMetrics)) {
+            return;
+        }
+
+        $instruments->getActorRestartedCounter()->add(
+            1,
+            $metricsSystem->commonLabels($this),
+        );
     }
 
     private function handleActorStoppedMetrics(): void
     {
         $metricsSystem = $this->enabledMetricsSystem($this->actorSystem);
-        if ($metricsSystem) {
-            $instruments = $metricsSystem->metrics()->find(PhluxorMetrics::INTERNAL_ACTOR_METRICS);
-            if ($instruments instanceof ActorMetrics) {
-                $instruments->getActorStoppedCounter()->add(
-                    1,
-                    $metricsSystem->commonLabels($this)
-                );
-            }
+        if (! $metricsSystem) {
+            return;
         }
+
+        $instruments = $metricsSystem->metrics()->find(PhluxorMetrics::INTERNAL_ACTOR_METRICS);
+        if (! ($instruments instanceof ActorMetrics)) {
+            return;
+        }
+
+        $instruments->getActorStoppedCounter()->add(
+            1,
+            $metricsSystem->commonLabels($this),
+        );
     }
 }

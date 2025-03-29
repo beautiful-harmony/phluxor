@@ -12,11 +12,11 @@ readonly class ActorProcess implements ProcessInterface
 {
     public function __construct(
         private MailboxInterface $mailbox,
-        private Long $dead = new Long(0)
+        private Long $dead = new Long(0),
     ) {
     }
 
-    public function sendUserMessage(?Ref $pid, mixed $message): void
+    public function sendUserMessage(Ref|null $pid, mixed $message): void
     {
         $this->mailbox->postUserMessage($message);
     }

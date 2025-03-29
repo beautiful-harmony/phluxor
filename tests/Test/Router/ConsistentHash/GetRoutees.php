@@ -9,7 +9,7 @@ use Phluxor\ActorSystem\Ref;
 readonly class GetRoutees
 {
     public function __construct(
-        public Ref $ref
+        public Ref $ref,
     ) {
     }
 }

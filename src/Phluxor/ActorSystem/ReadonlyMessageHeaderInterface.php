@@ -6,7 +6,7 @@ namespace Phluxor\ActorSystem;
 
 interface ReadonlyMessageHeaderInterface
 {
-    public function get(string $key): ?string;
+    public function get(string $key): string|null;
 
     public function keys(): array;
 

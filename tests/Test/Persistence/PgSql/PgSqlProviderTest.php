@@ -1,15 +1,17 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Test\Persistence\PgSql;
 
 use Google\Protobuf\Internal\Message;
+use PDO;
 use Phluxor\ActorSystem;
 use Phluxor\Persistence\PgSql\Connection;
 use Phluxor\Persistence\PgSql\DefaultSchema;
 use Phluxor\Persistence\PgSql\Dsn;
 use Phluxor\Persistence\PgSql\PgSqlProvider;
 use PHPUnit\Framework\TestCase;
-
 use Test\Persistence\ProtoBuf\UserCreated;
 
 use function Swoole\Coroutine\run;
@@ -25,15 +27,15 @@ class PgSqlProviderTest extends TestCase
             5432,
             'sample',
             'postgres',
-            'postgres'
+            'postgres',
         );
     }
 
     public function tearDown(): void
     {
-        run(function () {
-            go(function () {
-                $conn = new \PDO((string)$this->dsn, $this->dsn->username, $this->dsn->password);
+        run(function (): void {
+            go(function (): void {
+                $conn = new PDO((string) $this->dsn, $this->dsn->username, $this->dsn->password);
                 $conn->exec('TRUNCATE journals;');
                 $conn->exec('TRUNCATE snapshots;');
                 $conn = null;
@@ -43,17 +45,17 @@ class PgSqlProviderTest extends TestCase
 
     public function testPersistEvent(): void
     {
-        run(function () {
-            go(function () {
+        run(function (): void {
+            go(function (): void {
                 $provider = $this->pgsqlProvider();
-                $event = new UserCreated([
+                $event    = new UserCreated([
                     'userID' => 'test',
                     'userName' => 'test',
                     'email' => '',
                 ]);
                 $provider->persistenceEvent('user', 1, $event);
                 $processed = false;
-                $provider->getEvents('user', 1, 4, function (Message $e) use (&$processed) {
+                $provider->getEvents('user', 1, 4, function (Message $e) use (&$processed): void {
                     $this->assertInstanceOf(UserCreated::class, $e);
                     $this->assertSame('test', $e->getUserName());
                     $this->assertSame('test', $e->getUserID());
@@ -62,7 +64,7 @@ class PgSqlProviderTest extends TestCase
                 });
                 $this->assertTrue($processed);
                 $processed = false;
-                $provider->getEvents('user', 1, 0, function (Message $e) use (&$processed) {
+                $provider->getEvents('user', 1, 0, function (Message $e) use (&$processed): void {
                     $this->assertInstanceOf(UserCreated::class, $e);
                     $this->assertSame('test', $e->getUserName());
                     $this->assertSame('test', $e->getUserID());
@@ -76,10 +78,10 @@ class PgSqlProviderTest extends TestCase
 
     public function testPersistSnapshot(): void
     {
-        run(function () {
-            go(function () {
+        run(function (): void {
+            go(function (): void {
                 $provider = $this->pgsqlProvider();
-                $event = new UserCreated([
+                $event    = new UserCreated([
                     'userID' => 'test',
                     'userName' => 'test',
                     'email' => '',
@@ -94,7 +96,7 @@ class PgSqlProviderTest extends TestCase
                 $result = $provider->getSnapshot('1');
                 $this->assertNull($result->getSnapshot());
                 $processed = false;
-                $provider->getEvents('user', 1, 0, function (Message $e) use (&$processed) {
+                $provider->getEvents('user', 1, 0, static function (Message $e) use (&$processed): void {
                     $processed = true;
                 });
                 $this->assertFalse($processed);
@@ -105,13 +107,14 @@ class PgSqlProviderTest extends TestCase
     private function pgsqlProvider(): PgSqlProvider
     {
         $conn = new Connection(
-            $this->dsn
+            $this->dsn,
         );
+
         return new PgSqlProvider(
             $conn->proxy(),
             new DefaultSchema(),
             3,
-            ActorSystem::create()->getLogger()
+            ActorSystem::create()->getLogger(),
         );
     }
 }

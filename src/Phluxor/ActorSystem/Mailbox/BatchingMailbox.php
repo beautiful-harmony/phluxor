@@ -13,9 +13,11 @@ use Phluxor\ActorSystem\QueueResult;
 use Swoole\Atomic;
 use Throwable;
 
+use function count;
+
 class BatchingMailbox implements MailboxInterface
 {
-    private const int IDLE = 0;
+    private const int IDLE    = 0;
     private const int RUNNING = 1;
 
     private Atomic $userMessages;
@@ -25,34 +27,24 @@ class BatchingMailbox implements MailboxInterface
     private DispatcherInterface|null $dispatcher;
     private MessageInvokerInterface|null $invoker;
 
-    /**
-     * @param UnboundedMailboxQueue $userMailbox
-     * @param UnboundedMailboxQueue $systemMailbox
-     * @param int $batchSize
-     * @param MailboxMiddlewareInterface[] $middlewares
-     */
+    /** @param MailboxMiddlewareInterface[] $middlewares */
     public function __construct(
         private readonly UnboundedMailboxQueue $userMailbox,
         private readonly UnboundedMailboxQueue $systemMailbox,
         private readonly int $batchSize,
-        private readonly array $middlewares
+        private readonly array $middlewares,
     ) {
-        $this->userMessages = new Atomic(0);
-        $this->systemMessages = new Atomic(0);
-        $this->suspended = new Atomic(0);
+        $this->userMessages    = new Atomic(0);
+        $this->systemMessages  = new Atomic(0);
+        $this->suspended       = new Atomic(0);
         $this->schedulerStatus = new Atomic(self::IDLE);
     }
 
-    /**
-     * @param MessageInvokerInterface $invoker
-     * @param DispatcherInterface $dispatcher
-     * @return void
-     */
     public function registerHandlers(
         MessageInvokerInterface $invoker,
-        DispatcherInterface $dispatcher
+        DispatcherInterface $dispatcher,
     ): void {
-        $this->invoker = $invoker;
+        $this->invoker    = $invoker;
         $this->dispatcher = $dispatcher;
     }
 
@@ -68,6 +60,7 @@ class BatchingMailbox implements MailboxInterface
         foreach ($this->middlewares as $middleware) {
             $middleware->messagePosted($message);
         }
+
         $this->userMailbox->push($message);
         $this->userMessages->add();
         $this->schedule();
@@ -78,15 +71,12 @@ class BatchingMailbox implements MailboxInterface
         foreach ($this->middlewares as $middleware) {
             $middleware->messagePosted($message);
         }
+
         $this->systemMailbox->push($message);
         $this->systemMessages->add();
         $this->schedule();
     }
 
-    /**
-     * @param mixed $msg
-     * @return void
-     */
     protected function handleSystemMessage(mixed $msg): void
     {
         $msg = $this->getValue($msg);
@@ -99,16 +89,13 @@ class BatchingMailbox implements MailboxInterface
                 break;
             default:
                 $this->invoker?->invokeSystemMessage($msg);
-        };
+        }
+
         foreach ($this->middlewares as $middleware) {
             $middleware->messageReceived($msg);
         }
     }
 
-    /**
-     * @param mixed $msg
-     * @return void
-     */
     protected function handleUserMessage(mixed $msg): void
     {
         $msg = new MessageBatch($msg);
@@ -122,9 +109,9 @@ class BatchingMailbox implements MailboxInterface
     {
         try {
             $batch = [];
-            $msg = $this->systemMailbox->pop();
+            $msg   = $this->systemMailbox->pop();
 
-            if (!$msg->valueIsNull()) {
+            if (! $msg->valueIsNull()) {
                 $this->systemMessages->sub();
                 $this->handleSystemMessage($msg);
             }
@@ -134,58 +121,67 @@ class BatchingMailbox implements MailboxInterface
             }
 
             $msg = $this->userMailbox->pop();
-            if (!$msg->valueIsNull()) {
-                while (count($batch) < $this->batchSize) {
-                    $batch[] = $this->getValue($msg);
-                }
-                $this->userMessages->sub();
-                if (count($batch) > 0) {
-                    $this->handleUserMessage($batch);
-                }
-            } else {
+            if ($msg->valueIsNull()) {
                 return;
+            }
+
+            while (count($batch) < $this->batchSize) {
+                $batch[] = $this->getValue($msg);
+            }
+
+            $this->userMessages->sub();
+            if (count($batch) > 0) {
+                $this->handleUserMessage($batch);
             }
         } catch (Throwable $e) {
             $this->suspended->set(1);
             $this->invoker?->escalateFailure($e, $msg ?? null);
         }
+
         $this->schedulerStatus->set(self::IDLE);
 
-        if (!$this->userMailbox->isEmpty() ||
-            (!$this->systemMailbox->isEmpty() && $this->suspended->get() === 0)) {
-            $this->schedule();
+        if (
+            $this->userMailbox->isEmpty() &&
+            ($this->systemMailbox->isEmpty() || $this->suspended->get() !== 0)
+        ) {
+            return;
         }
+
+        $this->schedule();
     }
 
-    /**
-     * @return Closure(): void
-     */
+    /** @return Closure(): void */
     private function processMessage(): Closure
     {
-        return function () {
+        return function (): void {
             process:
             $this->run();
             $this->schedulerStatus->set(self::IDLE);
-            $sys = $this->systemMessages->get();
+            $sys  = $this->systemMessages->get();
             $user = $this->userMessages->get();
             if ($sys > 0 || ($this->suspended->get() === 0 && $user > 0)) {
                 if ($this->schedulerStatus->cmpset(self::IDLE, self::RUNNING)) {
                     goto process;
                 }
             }
-            if ($user === 0 && $this->suspended->get() == 0) {
-                foreach ($this->middlewares as $middleware) {
-                    $middleware->mailboxEmpty();
-                }
+
+            if ($user !== 0 || $this->suspended->get() !== 0) {
+                return;
+            }
+
+            foreach ($this->middlewares as $middleware) {
+                $middleware->mailboxEmpty();
             }
         };
     }
 
     private function schedule(): void
     {
-        if ($this->schedulerStatus->cmpset(self::IDLE, self::RUNNING)) {
-            $this->dispatcher?->schedule($this->processMessage());
+        if (! $this->schedulerStatus->cmpset(self::IDLE, self::RUNNING)) {
+            return;
         }
+
+        $this->dispatcher?->schedule($this->processMessage());
     }
 
     public function userMessageCount(): int
@@ -198,15 +194,12 @@ class BatchingMailbox implements MailboxInterface
         return $this->systemMessages->get();
     }
 
-    /**
-     * @param mixed $msg
-     * @return mixed
-     */
     public function getValue(mixed $msg): mixed
     {
         if ($msg instanceof QueueResult) {
             $msg = $msg->value();
         }
+
         return $msg;
     }
 }

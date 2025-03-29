@@ -7,50 +7,37 @@ namespace Phluxor\ActorSystem\Strategy;
 use Closure;
 use DateInterval;
 use Phluxor\ActorSystem;
+use Phluxor\ActorSystem\Child;
 use Phluxor\ActorSystem\Directive;
 use Phluxor\ActorSystem\Ref;
 use Phluxor\ActorSystem\SupervisorInterface;
 use Phluxor\ActorSystem\SupervisorStrategyInterface;
-use Phluxor\ActorSystem\Child;
 
 final readonly class AllForOneStrategy implements SupervisorStrategyInterface
 {
-    /**
-     * @param int $maxNrOfRetries
-     * @param DateInterval $withinDuration
-     * @param ActorSystem\Supervision\DeciderFunctionInterface|Closure(mixed): Directive $decider $decider
-     */
+    /** @param ActorSystem\Supervision\DeciderFunctionInterface|Closure(mixed): Directive $decider $decider */
     public function __construct(
         private int $maxNrOfRetries,
         private DateInterval $withinDuration,
-        private ActorSystem\Supervision\DeciderFunctionInterface|Closure $decider
+        private ActorSystem\Supervision\DeciderFunctionInterface|Closure $decider,
     ) {
     }
 
-    /**
-     * @param ActorSystem $actorSystem
-     * @param SupervisorInterface $supervisor
-     * @param Ref $child
-     * @param Child\RestartStatistics $restartStatistics
-     * @param mixed $reason
-     * @param mixed $message
-     * @return void
-     */
     public function handleFailure(
         ActorSystem $actorSystem,
         SupervisorInterface $supervisor,
         Ref $child,
         Child\RestartStatistics $restartStatistics,
         mixed $reason,
-        mixed $message
+        mixed $message,
     ): void {
-        $decider = $this->decider;
+        $decider   = $this->decider;
         $directive = $decider($reason);
         switch ($directive) {
             case ActorSystem\Directive::Resume:
                 // resume the child, no need to involve the crs
                 $actorSystem->getEventStream()?->publish(
-                    new SupervisorEvent($child, $reason, $directive)
+                    new SupervisorEvent($child, $reason, $directive),
                 );
                 $supervisor->resumeChildren($child);
                 break;
@@ -59,21 +46,22 @@ final readonly class AllForOneStrategy implements SupervisorStrategyInterface
                 // restart the all children and check if we should stop
                 if ($this->shouldStop($restartStatistics)) {
                     $actorSystem->getEventStream()?->publish(
-                        new SupervisorEvent($child, $reason, ActorSystem\Directive::Stop)
+                        new SupervisorEvent($child, $reason, ActorSystem\Directive::Stop),
                     );
                     $supervisor->stopChildren(...$children);
                 } else {
                     $actorSystem->getEventStream()?->publish(
-                        new SupervisorEvent($child, $reason, ActorSystem\Directive::Restart)
+                        new SupervisorEvent($child, $reason, ActorSystem\Directive::Restart),
                     );
                     $supervisor->restartChildren(...$children);
                 }
+
                 break;
             case ActorSystem\Directive::Stop:
                 $children = $supervisor->children();
                 // stop all the children
                 $actorSystem->getEventStream()?->publish(
-                    new SupervisorEvent($child, $reason, $directive)
+                    new SupervisorEvent($child, $reason, $directive),
                 );
                 $supervisor->stopChildren(...$children);
                 break;
@@ -89,10 +77,12 @@ final readonly class AllForOneStrategy implements SupervisorStrategyInterface
         if ($this->maxNrOfRetries === 0) {
             return true;
         }
+
         $rs->fail();
 
         if ($rs->numberOfFailures($this->withinDuration) > $this->maxNrOfRetries) {
             $rs->reset();
+
             return true;
         }
 

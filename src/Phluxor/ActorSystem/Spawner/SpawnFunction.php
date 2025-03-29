@@ -12,18 +12,11 @@ use Phluxor\ActorSystem\SpawnResult;
 
 readonly class SpawnFunction implements SpawnFunctionInterface
 {
-    /**
-     * @param ActorSystem $actorSystem
-     * @param string $id
-     * @param Props $props
-     * @param Context\SpawnerInterface $parentContext
-     * @return SpawnResult
-     */
     public function __invoke(
         ActorSystem $actorSystem,
         string $id,
         Props $props,
-        Context\SpawnerInterface $parentContext
+        Context\SpawnerInterface $parentContext,
     ): SpawnResult {
         return $props->spawn($actorSystem, $id, $parentContext);
     }

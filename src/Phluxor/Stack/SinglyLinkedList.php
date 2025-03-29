@@ -11,15 +11,15 @@ class SinglyLinkedList
     private int $size = 0;
 
     public function __construct(
-        public ?Node $head = null,
-        public ?Node $tail = null
+        public Node|null $head = null,
+        public Node|null $tail = null,
     ) {
     }
 
     public function prepend(mixed $data): void
     {
-        $node = new Node($data, $this->head);
-        $this->head = $node;
+        $node         = new Node($data, $this->head);
+        $this->head   = $node;
         $this->tail ??= $node;
         $this->size++;
     }
@@ -29,22 +29,21 @@ class SinglyLinkedList
         $this->prepend($data);
     }
 
-    /**
-     * @param int $index
-     * @return mixed
-     */
     public function get(int $index = 0): mixed
     {
         $node = $this->head;
         for ($i = 0; $i < $index; $i++) {
-            if (!$node) {
+            if (! $node) {
                 break;
             }
+
             $node = $node->getNext();
         }
-        if (!$node) {
-            throw new RuntimeException("Index out of bounds");
+
+        if (! $node) {
+            throw new RuntimeException('Index out of bounds');
         }
+
         return $node->getValue();
     }
 
@@ -53,20 +52,24 @@ class SinglyLinkedList
         $node = $this->head;
         $prev = null;
         for ($i = 0; $i < $index; $i++) {
-            if (!$node) {
+            if (! $node) {
                 break;
             }
+
             $prev = $node;
             $node = $node->getNext();
         }
-        if (!$node) {
-            throw new RuntimeException("Index out of bounds");
+
+        if (! $node) {
+            throw new RuntimeException('Index out of bounds');
         }
+
         if ($prev) {
             $prev->replaceValue($node->getNext());
         } else {
             $this->head = $node->getNext();
         }
+
         $this->size--;
     }
 
@@ -74,6 +77,7 @@ class SinglyLinkedList
     {
         $node = $this->get(0);
         $this->remove(0);
+
         return $node;
     }
 

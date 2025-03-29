@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Value;
 
-use Phluxor\Value\ContextExtensions;
 use Phluxor\Value\ContextExtensionId;
+use Phluxor\Value\ContextExtensions;
 use Phluxor\Value\ExtensionInterface;
 use PHPUnit\Framework\TestCase;
 
@@ -15,9 +15,9 @@ class ContextExtensionsTest extends TestCase
 {
     public function testGenerateContextExtensions(): void
     {
-        run(function () {
-            go(function () {
-                $id = new class() implements ExtensionInterface {
+        run(function (): void {
+            go(function (): void {
+                $id         = new class () implements ExtensionInterface {
                     public function extensionID(): ContextExtensionId
                     {
                         return new ContextExtensionId(0);
@@ -32,9 +32,9 @@ class ContextExtensionsTest extends TestCase
 
     public function testGenerateSizeOveContextExtensions(): void
     {
-        run(function () {
-            go(function () {
-                $id = new class() implements ExtensionInterface {
+        run(function (): void {
+            go(function (): void {
+                $id         = new class () implements ExtensionInterface {
                     public function extensionID(): ContextExtensionId
                     {
                         return new ContextExtensionId(456);

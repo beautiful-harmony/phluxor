@@ -6,8 +6,5 @@ namespace Phluxor\ActorSystem\Message;
 
 interface ProducerInterface
 {
-    /**
-     * @return ActorInterface
-     */
     public function __invoke(): ActorInterface;
 }

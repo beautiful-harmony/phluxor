@@ -18,11 +18,11 @@ class FutureTest extends TestCase
 
     public function testWaitWithTimeout(): void
     {
-        run(function () {
-            go(function () {
-                $f = ActorSystem\Future::create(ActorSystem::create(), 2);
+        run(function (): void {
+            go(function (): void {
+                $f   = ActorSystem\Future::create(ActorSystem::create(), 2);
                 $pid = $f->pid();
-                $this->assertNotNull($pid, "Future should have a PID.");
+                $this->assertNotNull($pid, 'Future should have a PID.');
                 $f->stop($pid);
             });
         });
@@ -30,36 +30,36 @@ class FutureTest extends TestCase
 
     public function testFuturePipeToMessage(): void
     {
-        run(function () {
-            go(function () {
-                $count = 0;
+        run(function (): void {
+            go(function (): void {
+                $count  = 0;
                 $system = ActorSystem::create();
-                $a1 = $this->spawnMockProcess(
+                $a1     = $this->spawnMockProcess(
                     $system,
                     'a1',
                     null,
-                    function (?Ref $pid, mixed $message) use (&$count) {
+                    function (Ref|null $pid, mixed $message) use (&$count): void {
                         $this->assertSame('hello', $message);
                         $count++;
-                    }
+                    },
                 );
-                $a2 = $this->spawnMockProcess(
+                $a2     = $this->spawnMockProcess(
                     $system,
                     'a2',
                     null,
-                    function (?Ref $pid, mixed $message) use (&$count) {
+                    function (Ref|null $pid, mixed $message) use (&$count): void {
                         $this->assertSame('hello', $message);
                         $count++;
-                    }
+                    },
                 );
-                $a3 = $this->spawnMockProcess(
+                $a3     = $this->spawnMockProcess(
                     $system,
                     'a3',
                     null,
-                    function (?Ref $pid, mixed $message) use (&$count) {
+                    function (Ref|null $pid, mixed $message) use (&$count): void {
                         $this->assertSame('hello', $message);
                         $count++;
-                    }
+                    },
                 );
                 $future = ActorSystem\Future::create($system, 1);
                 $future->pipeTo($a1['ref']);
@@ -79,45 +79,45 @@ class FutureTest extends TestCase
 
     public function testFuturePipeToTimeoutSendException(): void
     {
-        run(function () {
-            go(function () {
-                $count = 0;
+        run(function (): void {
+            go(function (): void {
+                $count  = 0;
                 $system = ActorSystem::create();
-                $a1 = $this->spawnMockProcess(
+                $a1     = $this->spawnMockProcess(
                     $system,
                     'a1',
                     null,
-                    function (?Ref $pid, mixed $message) use (&$count) {
+                    function (Ref|null $pid, mixed $message) use (&$count): void {
                         $this->assertInstanceOf(
                             ActorSystem\Exception\FutureTimeoutException::class,
-                            $message
+                            $message,
                         );
                         $count++;
-                    }
+                    },
                 );
-                $a2 = $this->spawnMockProcess(
+                $a2     = $this->spawnMockProcess(
                     $system,
                     'a2',
                     null,
-                    function (?Ref $pid, mixed $message) use (&$count) {
+                    function (Ref|null $pid, mixed $message) use (&$count): void {
                         $this->assertInstanceOf(
                             ActorSystem\Exception\FutureTimeoutException::class,
-                            $message
+                            $message,
                         );
                         $count++;
-                    }
+                    },
                 );
-                $a3 = $this->spawnMockProcess(
+                $a3     = $this->spawnMockProcess(
                     $system,
                     'a3',
                     null,
-                    function (?Ref $pid, mixed $message) use (&$count) {
+                    function (Ref|null $pid, mixed $message) use (&$count): void {
                         $this->assertInstanceOf(
                             ActorSystem\Exception\FutureTimeoutException::class,
-                            $message
+                            $message,
                         );
                         $count++;
-                    }
+                    },
                 );
                 $future = ActorSystem\Future::create($system, 1);
                 $future->pipeTo($a1['ref']);
@@ -136,21 +136,23 @@ class FutureTest extends TestCase
 
     public function testFutureCreateTimeoutNoRace(): void
     {
-        run(fn: function () {
+        run(fn: function (): void {
             $system = ActorSystem::create();
-            go(function (ActorSystem $system) {
+            go(function (ActorSystem $system): void {
                 $future = ActorSystem\Future::create($system, 1);
-                $root = $system->root();
-                $a = $root->spawn(
+                $root   = $system->root();
+                $a      = $root->spawn(
                     ActorSystem\Props::fromFunction(
                         new ActorSystem\Message\ReceiveFunction(
-                            function (ActorSystem\Context\ContextInterface $context) use ($future) {
-                                if ($context->message() instanceof ActorSystem\Message\Started) {
-                                    $context->send($future->pid(), 'echo');
+                            static function (ActorSystem\Context\ContextInterface $context) use ($future): void {
+                                if (! ($context->message() instanceof ActorSystem\Message\Started)) {
+                                    return;
                                 }
-                            }
-                        )
-                    )
+
+                                $context->send($future->pid(), 'echo');
+                            },
+                        ),
+                    ),
                 );
                 $this->assertNull($root->stopFuture($a)?->wait());
                 $r = $future->result();
@@ -162,16 +164,16 @@ class FutureTest extends TestCase
 
     public function testFutureResultDeadLetterResponse(): void
     {
-        run(function () {
+        run(function (): void {
             $system = ActorSystem::create();
-            go(function (ActorSystem $system) {
+            go(function (ActorSystem $system): void {
                 $future = ActorSystem\Future::create($system, 1);
-                $root = $system->root();
+                $root   = $system->root();
                 $root->send($future->pid(), new ActorSystem\ProtoBuf\DeadLetterResponse());
                 $r = $future->result();
                 $this->assertInstanceOf(
                     ActorSystem\Exception\FutureTimeoutException::class,
-                    $r->error()
+                    $r->error(),
                 );
                 $this->assertNull($r->value());
             }, $system);
@@ -180,14 +182,14 @@ class FutureTest extends TestCase
 
     public function testFutureResultTimeout(): void
     {
-        run(function () {
-            go(function () {
+        run(function (): void {
+            go(function (): void {
                 $system = ActorSystem::create();
                 $future = ActorSystem\Future::create($system, 1);
-                $r = $future->result();
+                $r      = $future->result();
                 $this->assertInstanceOf(
                     ActorSystem\Exception\FutureTimeoutException::class,
-                    $r->error()
+                    $r->error(),
                 );
                 $this->assertNull($r->value());
             });
@@ -196,15 +198,15 @@ class FutureTest extends TestCase
 
     public function testFutureResultSuccess(): void
     {
-        run(function () {
-            go(function () {
+        run(function (): void {
+            go(function (): void {
                 $system = ActorSystem::create();
                 $future = ActorSystem\Future::create($system, 1);
                 $system->root()->send($future->pid(), 'echo');
                 $r = $future->result();
                 $this->assertNotInstanceOf(
                     ActorSystem\Exception\FutureTimeoutException::class,
-                    $r->error()
+                    $r->error(),
                 );
                 $this->assertNotNull($r->value());
             });

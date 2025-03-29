@@ -8,7 +8,7 @@ readonly class MessageEnvelope
 {
     public function __construct(
         public string $typeName,
-        public string $rawMessage
+        public string $rawMessage,
     ) {
     }
 }

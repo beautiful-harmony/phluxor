@@ -13,53 +13,51 @@ use Phluxor\ActorSystem\Ref;
 use Phluxor\ActorSystem\Strategy\OneForOneStrategy;
 use Phluxor\ActorSystem\Supervision\DefaultDecider;
 use PHPUnit\Framework\TestCase;
+use Swoole\Coroutine;
 use Swoole\Coroutine\WaitGroup;
 use Test\NullProducer;
 use Test\ProcessTrait;
 
+use function is_bool;
 use function Swoole\Coroutine\run;
 
 class ActorContextTest extends TestCase
 {
     use ProcessTrait;
 
-    /**
-     * @param ActorSystem $system
-     * @param WaitGroup $wg
-     * @param int $count
-     * @return ActorSystem\Ref|null
-     */
     private function receiver(ActorSystem $system, WaitGroup $wg, int &$count): ActorSystem\Ref|null
     {
         return $system->root()->spawn(
             Props::fromFunction(
                 new ActorSystem\Message\ReceiveFunction(
-                    function (ContextInterface $context) use ($wg, &$count) {
-                        if (is_bool($context->message())) {
-                            $count++;
-                            $wg->done();
+                    static function (ContextInterface $context) use ($wg, &$count): void {
+                        if (! is_bool($context->message())) {
+                            return;
                         }
-                    }
-                )
-            )
+
+                        $count++;
+                        $wg->done();
+                    },
+                ),
+            ),
         );
     }
 
     public function testSendMessageWithSenderMiddleware(): void
     {
-        run(function () {
-            go(function () {
-                $wg = new WaitGroup();
-                $system = ActorSystem::create();
-                $mw = new MockSenderMiddleware();
-                $props = Props::fromProducer(
+        run(function (): void {
+            go(function (): void {
+                $wg      = new WaitGroup();
+                $system  = ActorSystem::create();
+                $mw      = new MockSenderMiddleware();
+                $props   = Props::fromProducer(
                     new NullProducer(),
                     Props::withSupervisor(
-                        new OneForOneStrategy(10, new DateInterval('PT10S'), new DefaultDecider())
+                        new OneForOneStrategy(10, new DateInterval('PT10S'), new DefaultDecider()),
                     ),
-                    Props::withSenderMiddleware($mw)
+                    Props::withSenderMiddleware($mw),
                 );
-                $count = 0;
+                $count   = 0;
                 $context = new ActorContext($system, $props, null);
                 // 3 milliseconds
                 $timeout = 3;
@@ -87,32 +85,32 @@ class ActorContextTest extends TestCase
 
     public function testActorContextStop(): void
     {
-        run(function () {
-            go(function () {
-                $system = ActorSystem::create();
-                $spawn = $this->spawnMockProcess($system, 'foo');
+        run(function (): void {
+            go(function (): void {
+                $system    = ActorSystem::create();
+                $spawn     = $this->spawnMockProcess($system, 'foo');
                 $terminate = 0;
-                $watcher = $this->spawnMockProcess(
+                $watcher   = $this->spawnMockProcess(
                     $system,
                     'watcher',
-                    function (?Ref $pid, mixed $message) use (&$terminate) {
+                    function (Ref|null $pid, mixed $message) use (&$terminate): void {
                         /** @var ActorSystem\ProtoBuf\Terminated $message */
                         $this->assertInstanceOf(ActorSystem\ProtoBuf\Terminated::class, $message);
                         $this->assertSame('foo', $message->getWho()?->getId());
                         $terminate++;
-                    }
+                    },
                 );
-                $props = Props::fromProducer(
+                $props     = Props::fromProducer(
                     new NullProducer(),
                     Props::withSupervisor(
-                        new OneForOneStrategy(10, new DateInterval('PT10S'), new DefaultDecider())
-                    )
+                        new OneForOneStrategy(10, new DateInterval('PT10S'), new DefaultDecider()),
+                    ),
                 );
-                $context = new ActorContext($system, $props, null);
+                $context   = new ActorContext($system, $props, null);
                 $context->setSelf($spawn['ref']);
                 $context->invokeSystemMessage(new ActorSystem\ProtoBuf\Stop());
                 $context->invokeSystemMessage(
-                    new ActorSystem\ProtoBuf\Watch(['watcher' => $watcher['ref']->protobufPid()])
+                    new ActorSystem\ProtoBuf\Watch(['watcher' => $watcher['ref']->protobufPid()]),
                 );
                 $this->removeMockProcess($system, $spawn['ref']);
                 $this->removeMockProcess($system, $watcher['ref']);
@@ -123,15 +121,15 @@ class ActorContextTest extends TestCase
 
     public function testStash(): void
     {
-        run(function () {
-            go(function () {
-                $system = ActorSystem::create();
-                $spawn = $this->spawnMockProcess($system, 'foo');
-                $props = Props::fromProducer(
+        run(function (): void {
+            go(function (): void {
+                $system  = ActorSystem::create();
+                $spawn   = $this->spawnMockProcess($system, 'foo');
+                $props   = Props::fromProducer(
                     new NullProducer(),
                     Props::withSupervisor(
-                        new OneForOneStrategy(10, new DateInterval('PT10S'), new DefaultDecider())
-                    )
+                        new OneForOneStrategy(10, new DateInterval('PT10S'), new DefaultDecider()),
+                    ),
                 );
                 $context = new ActorContext($system, $props, null);
                 $context->setSelf($spawn['ref']);
@@ -148,27 +146,30 @@ class ActorContextTest extends TestCase
 
     public function testShouldReceiveMessageAfterRestart(): void
     {
-        run(function () {
-            go(function () {
+        run(function (): void {
+            go(function (): void {
                 $counter = 0;
-                $system = ActorSystem::create();
-                $props = Props::fromFunction(
+                $system  = ActorSystem::create();
+                $props   = Props::fromFunction(
                     new ActorSystem\Message\ReceiveFunction(
-                        function (ContextInterface $context) use (&$counter) {
+                        static function (ContextInterface $context) use (&$counter): void {
                             $context->stash();
                             $message = $context->message();
-                            if ($message === 'hello') {
-                                $counter++;
+                            if ($message !== 'hello') {
+                                return;
                             }
-                        }
-                    )
+
+                            $counter++;
+                        },
+                    ),
                 );
-                $ref = $system->root()->spawn($props);
+                $ref     = $system->root()->spawn($props);
                 for ($i = 0; $i < 4; $i++) {
                     $system->root()->send($ref, 'hello');
                 }
+
                 $system->root()->send($ref, new ActorSystem\Message\Restart());
-                \Swoole\Coroutine::sleep(1);
+                Coroutine::sleep(1);
                 $this->assertSame(4, $counter);
             });
         });
@@ -176,13 +177,13 @@ class ActorContextTest extends TestCase
 
     public function testShouldReceiveTimeoutMessage(): void
     {
-        run(function () {
-            go(function () {
-                $system = ActorSystem::create();
+        run(function (): void {
+            go(function (): void {
+                $system  = ActorSystem::create();
                 $proceed = false;
-                $props = Props::fromFunction(
+                $props   = Props::fromFunction(
                     new ActorSystem\Message\ReceiveFunction(
-                        function (ContextInterface $context) use (&$proceed) {
+                        static function (ContextInterface $context) use (&$proceed): void {
                             $message = $context->message();
                             switch (true) {
                                 case $message === 'hello':
@@ -193,12 +194,12 @@ class ActorContextTest extends TestCase
                                     $proceed = true;
                                     break;
                             }
-                        }
-                    )
+                        },
+                    ),
                 );
-                $ref = $system->root()->spawn($props);
+                $ref     = $system->root()->spawn($props);
                 $system->root()->send($ref, 'hello');
-                \Swoole\Coroutine::sleep(2);
+                Coroutine::sleep(2);
                 $this->assertTrue($proceed);
             });
         });
@@ -206,13 +207,13 @@ class ActorContextTest extends TestCase
 
     public function testShouldNotReceiveTimeoutMessageAfterReset(): void
     {
-        run(function () {
-            go(function () {
-                $system = ActorSystem::create();
+        run(function (): void {
+            go(function (): void {
+                $system  = ActorSystem::create();
                 $proceed = false;
-                $props = Props::fromFunction(
+                $props   = Props::fromFunction(
                     new ActorSystem\Message\ReceiveFunction(
-                        function (ContextInterface $context) use (&$proceed) {
+                        static function (ContextInterface $context) use (&$proceed): void {
                             $message = $context->message();
                             switch (true) {
                                 case $message === 'hello':
@@ -226,13 +227,13 @@ class ActorContextTest extends TestCase
                                     $proceed = true;
                                     break;
                             }
-                        }
-                    )
+                        },
+                    ),
                 );
-                $ref = $system->root()->spawn($props);
+                $ref     = $system->root()->spawn($props);
                 $system->root()->send($ref, 'hello');
                 $system->root()->send($ref, 'reset');
-                \Swoole\Coroutine::sleep(2);
+                Coroutine::sleep(2);
                 $this->assertFalse($proceed);
             });
         });
@@ -240,15 +241,15 @@ class ActorContextTest extends TestCase
 
     public function testShouldNotReceiveTimeoutMessageAfterNoInfluence(): void
     {
-        run(function () {
-            go(function () {
-                $system = ActorSystem::create();
+        run(function (): void {
+            go(function (): void {
+                $system  = ActorSystem::create();
                 $proceed = false;
-                $count = 0;
-                $wg = new WaitGroup();
-                $props = Props::fromFunction(
+                $count   = 0;
+                $wg      = new WaitGroup();
+                $props   = Props::fromFunction(
                     new ActorSystem\Message\ReceiveFunction(
-                        function (ContextInterface $context) use (&$proceed, &$count, $wg) {
+                        static function (ContextInterface $context) use (&$proceed, &$count, $wg): void {
                             $message = $context->message();
                             switch (true) {
                                 case $message === 'hello':
@@ -264,15 +265,15 @@ class ActorContextTest extends TestCase
                                     $wg->done();
                                     break;
                             }
-                        }
-                    )
+                        },
+                    ),
                 );
-                $ref = $system->root()->spawn($props);
+                $ref     = $system->root()->spawn($props);
                 $system->root()->send($ref, 'hello');
                 $system->root()->send($ref, 'hell');
                 $system->root()->send($ref, new NoInfluence());
                 $system->root()->send($ref, 'hell');
-                \Swoole\Coroutine::sleep(4);
+                Coroutine::sleep(4);
                 $wg->wait();
                 $this->assertTrue($proceed);
                 $this->assertSame(1, $count);

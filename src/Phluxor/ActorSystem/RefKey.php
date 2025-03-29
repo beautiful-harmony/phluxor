@@ -8,10 +8,6 @@ use function sprintf;
 
 readonly class RefKey
 {
-    /**
-     * @param string $address
-     * @param string $id
-     */
     public function __construct(
         private string $address,
         private string $id,

@@ -19,27 +19,27 @@ class GuardianProcessTest extends TestCase
 
     public function testShouldReturnGuardianRef(): void
     {
-        run(function () {
-            go(function() {
-                $system = ActorSystem::create();
-                $duration = new DateInterval('PT1S');
-                $strategy = new ActorSystem\Strategy\OneForOneStrategy(
+        run(function (): void {
+            go(function (): void {
+                $system     = ActorSystem::create();
+                $duration   = new DateInterval('PT1S');
+                $strategy   = new ActorSystem\Strategy\OneForOneStrategy(
                     maxNrOfRetries: 0,
                     withinDuration: $duration,
-                    decider: fn($reason) => ActorSystem\Directive::Restart,
+                    decider: static fn ($reason) => ActorSystem\Directive::Restart,
                 );
                 $isReceived = false;
-                $actor = $this->spawnMockProcess(
+                $actor      = $this->spawnMockProcess(
                     $system,
                     'actor1',
-                    function (?Ref $pid, mixed $message) use (&$isReceived) {
+                    static function (Ref|null $pid, mixed $message) use (&$isReceived): void {
                         $isReceived = true;
-                    }
+                    },
                 );
-                $guardian = new GuardianProcess(
+                $guardian   = new GuardianProcess(
                     new ActorSystem\GuardiansValue($system),
                     $actor['ref'],
-                    $strategy
+                    $strategy,
                 );
                 $this->assertEquals('actor1', (string) $guardian->getRef());
                 $this->assertFalse($isReceived);

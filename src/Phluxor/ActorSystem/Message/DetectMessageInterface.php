@@ -8,7 +8,6 @@ interface DetectMessageInterface
 {
     /**
      * match message
-     * @return bool
      */
     public function isMatch(): bool;
 }

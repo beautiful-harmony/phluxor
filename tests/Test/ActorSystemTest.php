@@ -14,8 +14,8 @@ class ActorSystemTest extends TestCase
 {
     public function testActorSystem(): void
     {
-        run(function () {
-            go(function () {
+        run(function (): void {
+            go(function (): void {
                 $actor = new ActorSystem();
                 $actor->shutdown();
                 $this->assertTrue($actor->isStopped());
@@ -25,25 +25,23 @@ class ActorSystemTest extends TestCase
 
     public function testActorSystemCreate(): void
     {
-        run(function () {
+        run(function (): void {
             go(
-            /**
-             * @throws MathException
-             */
-                function () {
+            /** @throws MathException */
+                function (): void {
                     $actor = ActorSystem::create();
                     $this->assertIsString($actor->getId());
                     $this->assertInstanceOf(ActorSystem\ProcessRegistryValue::class, $actor->getProcessRegistry());
-                }
+                },
             );
         });
     }
 
     public function testReturnDisabledMetrics(): void
     {
-        run(function () {
-            go(function () {
-                $system = ActorSystem::create();
+        run(function (): void {
+            go(function (): void {
+                $system  = ActorSystem::create();
                 $metrics = $system->metrics();
                 $this->assertInstanceOf(ActorSystem\Metrics::class, $metrics);
                 $this->assertFalse($metrics->isEnabled());
@@ -53,14 +51,14 @@ class ActorSystemTest extends TestCase
 
     public function testShouldReturnMetrics(): void
     {
-        run(function () {
-            go(function () {
+        run(function (): void {
+            go(function (): void {
                 $config = new ActorSystem\Config();
                 $config->setMetricsProvider(
                     new ActorSystem\Metrics\HttpJsonMeterProvider(
                         'phluxor',
-                        'http://127.0.0.1:4318/v1/metrics'
-                    )
+                        'http://127.0.0.1:4318/v1/metrics',
+                    ),
                 );
                 $system = ActorSystem::create($config);
                 $this->assertNotNull($system->metrics());

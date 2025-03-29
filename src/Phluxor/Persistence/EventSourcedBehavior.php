@@ -13,18 +13,12 @@ use Phluxor\ActorSystem\Props\ReceiverMiddlewareInterface;
 
 readonly class EventSourcedBehavior implements ReceiverMiddlewareInterface
 {
-    /**
-     * @param ProviderInterface $provider
-     */
     public function __construct(
         private ProviderInterface $provider,
     ) {
     }
 
-    /**
-     * @param Closure(ReceiverInterface|ContextInterface, MessageEnvelope): void|ReceiverFunctionInterface $next
-     * @return ReceiverFunctionInterface
-     */
+    /** @param Closure(ReceiverInterface|ContextInterface, MessageEnvelope): void|ReceiverFunctionInterface $next */
     public function __invoke(Closure|ReceiverFunctionInterface $next): ReceiverFunctionInterface
     {
         return new EventSourcedBehaviorFactory($this->provider, $next);

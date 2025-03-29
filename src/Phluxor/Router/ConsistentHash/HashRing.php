@@ -9,10 +9,24 @@ use Ketama\Continuum;
 use Ketama\Serverinfo;
 use Psr\SimpleCache\CacheInterface;
 
+use function array_reduce;
+use function assert;
+use function count;
+use function floor;
+use function hash;
+use function implode;
+use function is_string;
+use function md5;
+use function sprintf;
+use function substr;
+use function time;
+use function unpack;
+use function usort;
+
 class HashRing
 {
     public function __construct(
-        private CacheInterface $cache
+        private CacheInterface $cache,
     ) {
     }
 
@@ -23,41 +37,43 @@ class HashRing
         }
 
         $servers = $this->readDefinitions($filename);
-        $mtime = time();
+        $mtime   = time();
 
-        $memory = array_reduce($servers, function ($carry, Serverinfo $server): int {
+        $memory  = array_reduce($servers, static function ($carry, Serverinfo $server): int {
             return $carry + $server->getMemory();
         }, 0);
         $buckets = [];
-        $cont = 0;
+        $cont    = 0;
 
         foreach ($servers as $i => $server) {
             $pct = $server->getMemory() / $memory;
-            $ks = floor($pct * 40 * count($servers));
+            $ks  = floor($pct * 40 * count($servers));
 
             for ($k = 0; $k < $ks; $k++) {
-                $ss = sprintf('%s-%d', $server->getAddr(), $k);
+                $ss     = sprintf('%s-%d', $server->getAddr(), $k);
                 $digest = hash('md5', $ss, true);
 
                 for ($h = 0; $h < 4; $h++) {
-                    $unpacked = unpack('V', substr($digest, $h*4, 4));
+                    $unpacked = unpack('V', substr($digest, $h * 4, 4));
                     assert($unpacked !== false);
-                    [, $point] = $unpacked;
+                    [, $point]      = $unpacked;
                     $buckets[$cont] = new Bucket($point, $server->getAddr());
                     $cont++;
                 }
             }
         }
 
-        usort($buckets, function ($a, $b): int {
+        usort($buckets, static function ($a, $b): int {
             $a = $a->getPoint();
             $b = $b->getPoint();
             if ($a < $b) {
                 return -1;
             }
+
             if ($a > $b) {
                 return 1;
             }
+
             return 0;
         });
 
@@ -73,8 +89,9 @@ class HashRing
         $servers = [];
         foreach ($nodes as $server) {
             $serverinfo = new Serverinfo($server, 1);
-            $servers[] = $serverinfo;
+            $servers[]  = $serverinfo;
         }
+
         return $servers;
     }
 
@@ -84,14 +101,16 @@ class HashRing
         $this->cache->set($key, $continuum->serialize());
     }
 
-    private function loadFromCache(array $array): ?Continuum
+    private function loadFromCache(array $array): Continuum|null
     {
-        $key = 'continuum.' . md5(implode($array));
+        $key  = 'continuum.' . md5(implode($array));
         $data = $this->cache->get($key);
-        if (null === $data) {
+        if ($data === null) {
             return null;
         }
+
         assert(is_string($data));
+
         return Continuum::unserialize($data);
     }
 }

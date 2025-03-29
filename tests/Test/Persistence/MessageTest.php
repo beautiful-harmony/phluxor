@@ -9,15 +9,17 @@ use Phluxor\ActorSystem\ProtoBuf\TerminatedReason;
 use Phluxor\Persistence\Message;
 use PHPUnit\Framework\TestCase;
 
+use function json_encode;
+
 class MessageTest extends TestCase
 {
     public function testShouldSerializeMessage(): void
     {
-        $t = new Terminated(['why' => TerminatedReason::AddressTerminated]);
+        $t   = new Terminated(['why' => TerminatedReason::AddressTerminated]);
         $env = new Message($t);
         $this->assertSame(
             '{"typeName":"Phluxor\\\ActorSystem\\\ProtoBuf\\\Terminated","rawMessage":"{\"why\":\"AddressTerminated\"}"}',
-            json_encode($env)
+            json_encode($env),
         );
     }
 }

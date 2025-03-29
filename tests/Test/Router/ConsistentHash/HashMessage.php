@@ -11,7 +11,7 @@ use function md5;
 readonly class HashMessage implements HasherInterface
 {
     public function __construct(
-        public string $message
+        public string $message,
     ) {
     }
 

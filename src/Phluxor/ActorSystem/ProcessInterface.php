@@ -9,22 +9,12 @@ interface ProcessInterface
     /**
      * Sends a user message.
      *
-     * @param Ref|null $pid The reference to an actor.
-     * @param mixed $message The message to send.
-     * @return void
+     * @param Ref|null $pid     The reference to an actor.
+     * @param mixed    $message The message to send.
      */
-    public function sendUserMessage(?Ref $pid, mixed $message): void;
+    public function sendUserMessage(Ref|null $pid, mixed $message): void;
 
-    /**
-     * @param Ref $pid
-     * @param mixed $message
-     * @return void
-     */
     public function sendSystemMessage(Ref $pid, mixed $message): void;
 
-    /**
-     * @param Ref $pid
-     * @return void
-     */
     public function stop(Ref $pid): void;
 }

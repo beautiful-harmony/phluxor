@@ -10,7 +10,7 @@ class DefaultSchema implements RdbmsSchemaInterface
 {
     public function __construct(
         private string $journalTable = 'journals',
-        private string $snapshotTable = 'snapshots'
+        private string $snapshotTable = 'snapshots',
     ) {
     }
 
@@ -22,12 +22,14 @@ class DefaultSchema implements RdbmsSchemaInterface
     public function renameJournalTable(string $name): self
     {
         $this->journalTable = $name;
+
         return $this;
     }
 
     public function renameSnapshotTable(string $name): self
     {
         $this->snapshotTable = $name;
+
         return $this;
     }
 
@@ -66,27 +68,26 @@ class DefaultSchema implements RdbmsSchemaInterface
         return 'created_at';
     }
 
-    /**
-     * @return string[]
-     */
+    /** @return string[] */
     public function createTable(): array
     {
-        $tables = [
+        $tables       = [
             $this->journalTableName(),
             $this->snapshotTableName(),
         ];
         $createTables = [];
         foreach ($tables as $table) {
             $createTables[] = "CREATE TABLE $table (" .
-                $this->id() . " TEXT NOT NULL PRIMARY KEY," .
-                $this->payload() . " BLOB NOT NULL," .
-                $this->sequenceNumber() . " INTEGER," .
-                $this->actorName() . " TEXT NOT NULL," .
+                $this->id() . ' TEXT NOT NULL PRIMARY KEY,' .
+                $this->payload() . ' BLOB NOT NULL,' .
+                $this->sequenceNumber() . ' INTEGER,' .
+                $this->actorName() . ' TEXT NOT NULL,' .
                 $this->created() . " TEXT NOT NULL DEFAULT (DATETIME('now', 'localtime'))," .
-                "UNIQUE (" . $this->id() . ")," .
-                "UNIQUE (" . $this->actorName() . "," . $this->sequenceNumber() . ")" .
-                ");";
+                'UNIQUE (' . $this->id() . '),' .
+                'UNIQUE (' . $this->actorName() . ',' . $this->sequenceNumber() . ')' .
+                ');';
         }
+
         return $createTables;
     }
 }

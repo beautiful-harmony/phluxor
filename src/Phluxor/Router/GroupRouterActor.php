@@ -23,7 +23,7 @@ readonly class GroupRouterActor implements ActorInterface
         private Props $props,
         private ConfigInterface $config,
         private StateInterface $state,
-        private WaitGroup $wg
+        private WaitGroup $wg,
     ) {
     }
 
@@ -36,29 +36,31 @@ readonly class GroupRouterActor implements ActorInterface
                 $this->wg->done();
                 break;
             case $msg instanceof AddRoutee:
-                $r = $this->state->getRoutees();
+                $r   = $this->state->getRoutees();
                 $ref = new Ref($msg->getPid());
                 if ($r->contains($ref)) {
                     break;
                 }
+
                 $context->watch($ref);
                 $r->add($ref);
                 $this->state->registerRoutees($r);
                 break;
             case $msg instanceof RemoveRoutee:
-                $r = $this->state->getRoutees();
+                $r   = $this->state->getRoutees();
                 $ref = new Ref($msg->getPid());
-                if (!$r->contains($ref)) {
+                if (! $r->contains($ref)) {
                     break;
                 }
+
                 $context->unwatch($ref);
                 $r->remove($ref);
                 $this->state->registerRoutees($r);
                 break;
             case $msg instanceof Broadcast:
-                $r = $this->state->getRoutees();
+                $r      = $this->state->getRoutees();
                 $sender = $context->sender();
-                $r->forEach(function (int $int, Ref $pid) use ($context, $msg, $sender) {
+                $r->forEach(static function (int $int, Ref $pid) use ($context, $msg, $sender): void {
                     $context->requestWithCustomSender($pid, $msg->getMessage(), $sender);
                 });
                 break;
@@ -66,7 +68,7 @@ readonly class GroupRouterActor implements ActorInterface
                 $r = $this->state->getRoutees();
                 /** @var Pid[] $routees */
                 $routees = [];
-                $r->forEach(function (int $int, Ref $pid) use (&$routees) {
+                $r->forEach(static function (int $int, Ref $pid) use (&$routees): void {
                     $routees[] = $pid->protobufPid();
                 });
                 $context->respond(new Routees(['pids' => $routees]));

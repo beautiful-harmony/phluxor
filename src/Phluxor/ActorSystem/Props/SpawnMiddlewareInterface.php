@@ -9,11 +9,7 @@ use Phluxor\ActorSystem\SpawnFunctionInterface;
 
 interface SpawnMiddlewareInterface
 {
-    /**
-     * @param Closure|SpawnFunctionInterface $next
-     * @return Closure|SpawnFunctionInterface
-     */
     public function __invoke(
-        Closure|SpawnFunctionInterface $next
+        Closure|SpawnFunctionInterface $next,
     ): Closure|SpawnFunctionInterface;
 }

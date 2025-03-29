@@ -8,7 +8,7 @@ class Node
 {
     public function __construct(
         private mixed $value,
-        private ?Node $next = null
+        private Node|null $next = null,
     ) {
     }
 
@@ -17,7 +17,7 @@ class Node
         return $this->value;
     }
 
-    public function getNext(): ?Node
+    public function getNext(): Node|null
     {
         return $this->next;
     }
@@ -27,7 +27,7 @@ class Node
         $this->value = $value;
     }
 
-    public function replaceNext(?Node $next): void
+    public function replaceNext(Node|null $next): void
     {
         $this->next = $next;
     }

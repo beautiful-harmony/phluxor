@@ -23,37 +23,39 @@ class PropsTest extends TestCase
     public function testPropFromProducer(): void
     {
         $fun = Props::fromFunction(
-            new ReceiveFunction(function (ContextInterface $context) {
+            new ReceiveFunction(static function (ContextInterface $context): void {
             }),
-            Props::withOnInit(function (ContextInterface $context) {
-            })
+            Props::withOnInit(static function (ContextInterface $context): void {
+            }),
         );
         $this->assertNotSame($fun, $fun->clone());
     }
 
     public function testPropFromProducerWithMiddleware(): void
     {
-        run(function () {
-            go(function () {
-                $system = ActorSystem::create();
+        run(function (): void {
+            go(function (): void {
+                $system   = ActorSystem::create();
                 $isCalled = false;
-                $wg = new WaitGroup();
+                $wg       = new WaitGroup();
                 $wg->add();
                 $props = Props::fromProducer(
-                    fn() => new VoidActor(),
+                    static fn () => new VoidActor(),
                     Props::withReceiverMiddleware(
                         $this->mockReceiverMiddleware(
                             function (ContextInterface $context, MessageEnvelope $messageEnvelope) use (&$isCalled, $wg): void {
-                                if ($messageEnvelope->getMessage() === 'hello') {
-                                    $this->assertSame('hello', $messageEnvelope->getMessage());
-                                    $isCalled = true;
-                                    $wg->done();
+                                if ($messageEnvelope->getMessage() !== 'hello') {
+                                    return;
                                 }
-                            }
-                        )
-                    )
+
+                                $this->assertSame('hello', $messageEnvelope->getMessage());
+                                $isCalled = true;
+                                $wg->done();
+                            },
+                        ),
+                    ),
                 );
-                $ref = $system->root()->spawn($props);
+                $ref   = $system->root()->spawn($props);
                 $system->root()->send($ref, 'hello');
                 $wg->wait();
                 $this->assertTrue($isCalled);
@@ -63,25 +65,24 @@ class PropsTest extends TestCase
 
     private function mockReceiverMiddleware(Closure|ReceiverFunctionInterface $next): Props\ReceiverMiddlewareInterface
     {
-        return new readonly class($next) implements Props\ReceiverMiddlewareInterface {
-
+        return new readonly class ($next) implements Props\ReceiverMiddlewareInterface {
             public function __construct(
-                private Closure|ReceiverFunctionInterface $next
+                private Closure|ReceiverFunctionInterface $next,
             ) {
             }
 
             public function __invoke(
-                Closure|ReceiverFunctionInterface $next
+                Closure|ReceiverFunctionInterface $next,
             ): ReceiverFunctionInterface {
-                return new readonly class($this->next) implements ReceiverFunctionInterface {
-
+                return new readonly class ($this->next) implements ReceiverFunctionInterface {
                     public function __construct(
-                        private Closure|ReceiverFunctionInterface $next
+                        private Closure|ReceiverFunctionInterface $next,
                     ) {
                     }
+
                     public function __invoke(
                         ReceiverInterface|ContextInterface $context,
-                        MessageEnvelope $messageEnvelope
+                        MessageEnvelope $messageEnvelope,
                     ): void {
                         $next = $this->next;
                         $next($context, $messageEnvelope);

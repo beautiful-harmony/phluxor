@@ -29,9 +29,10 @@ class InMemoryTestActor implements ActorInterface, PersistentInterface
                 $this->state = $msg->getMessage();
                 break;
             case $msg instanceof TestMessage:
-                if (!$this->recovering()) {
+                if (! $this->recovering()) {
                     $this->persistenceReceive($msg);
                 }
+
                 $this->state = $msg->getMessage();
                 break;
             case $msg instanceof Query:

@@ -17,22 +17,22 @@ class DefaultSpawnerTest extends TestCase
     // should be spawn actor
     public function testSpawnActor(): void
     {
-        run(function () {
-            go(function () {
+        run(function (): void {
+            go(function (): void {
                 $actorSystem = ActorSystem::create();
-                $spawner = new DefaultSpawner();
-                $pid = $spawner(
+                $spawner     = new DefaultSpawner();
+                $pid         = $spawner(
                     $actorSystem,
                     'test',
-                    Props::fromProducer(fn() => new VoidActor()),
-                    $actorSystem->root()
+                    Props::fromProducer(static fn () => new VoidActor()),
+                    $actorSystem->root(),
                 );
-                $this->assertSame('test', (string)$pid->getRef());
+                $this->assertSame('test', (string) $pid->getRef());
                 $pid = $spawner(
                     $actorSystem,
                     'test',
-                    Props::fromProducer(fn() => new VoidActor()),
-                    $actorSystem->root()
+                    Props::fromProducer(static fn () => new VoidActor()),
+                    $actorSystem->root(),
                 );
                 $this->assertNotNull($pid->isError());
                 $this->assertInstanceOf(ActorSystem\Exception\SpawnErrorException::class, $pid->isError());

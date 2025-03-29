@@ -20,8 +20,8 @@ class MysqlProviderTest extends TestCase
 {
     public function tearDown(): void
     {
-        run(function () {
-            go(function () {
+        run(static function (): void {
+            go(static function (): void {
                 $conn = new PDO('mysql:host=127.0.0.1;port=3306;dbname=sample;charset=utf8mb4', 'user', 'passw@rd');
                 $conn->exec('TRUNCATE journals;');
                 $conn->exec('TRUNCATE snapshots;');
@@ -32,17 +32,17 @@ class MysqlProviderTest extends TestCase
 
     public function testPersistEvent(): void
     {
-        run(function () {
-            go(function () {
+        run(function (): void {
+            go(function (): void {
                 $provider = $this->mysqlProvider();
-                $event = new UserCreated([
+                $event    = new UserCreated([
                     'userID' => 'test',
                     'userName' => 'test',
                     'email' => '',
                 ]);
                 $provider->persistenceEvent('user', 1, $event);
                 $processed = false;
-                $provider->getEvents('user', 1, 4, function (Message $e) use (&$processed) {
+                $provider->getEvents('user', 1, 4, function (Message $e) use (&$processed): void {
                     $this->assertInstanceOf(UserCreated::class, $e);
                     $this->assertSame('test', $e->getUserName());
                     $this->assertSame('test', $e->getUserID());
@@ -51,7 +51,7 @@ class MysqlProviderTest extends TestCase
                 });
                 $this->assertTrue($processed);
                 $processed = false;
-                $provider->getEvents('user', 1, 0, function (Message $e) use (&$processed) {
+                $provider->getEvents('user', 1, 0, function (Message $e) use (&$processed): void {
                     $this->assertInstanceOf(UserCreated::class, $e);
                     $this->assertSame('test', $e->getUserName());
                     $this->assertSame('test', $e->getUserID());
@@ -65,10 +65,10 @@ class MysqlProviderTest extends TestCase
 
     public function testPersistSnapshot(): void
     {
-        run(function () {
-            go(function () {
+        run(function (): void {
+            go(function (): void {
                 $provider = $this->mysqlProvider();
-                $event = new UserCreated([
+                $event    = new UserCreated([
                     'userID' => 'test',
                     'userName' => 'test',
                     'email' => '',
@@ -83,7 +83,7 @@ class MysqlProviderTest extends TestCase
                 $result = $provider->getSnapshot('1');
                 $this->assertNull($result->getSnapshot());
                 $processed = false;
-                $provider->getEvents('user', 1, 0, function (Message $e) use (&$processed) {
+                $provider->getEvents('user', 1, 0, static function (Message $e) use (&$processed): void {
                     // should not be called
                     // journal is empty
                     $processed = true;
@@ -101,13 +101,15 @@ class MysqlProviderTest extends TestCase
                 3306,
                 'sample',
                 'user',
-                'passw@rd'
-            ));
+                'passw@rd',
+            ),
+        );
+
         return new MysqlProvider(
             $conn->proxy(),
             new DefaultSchema(),
             3,
-            ActorSystem::create()->getLogger()
+            ActorSystem::create()->getLogger(),
         );
     }
 }

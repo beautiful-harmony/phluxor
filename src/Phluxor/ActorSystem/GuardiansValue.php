@@ -13,11 +13,8 @@ class GuardiansValue
     /** @var GuardianProcess[] array<string, GuardianProcess> */
     private array $guardians = [];
 
-    /**
-     * @param ActorSystem $actorSystem
-     */
     public function __construct(
-        private readonly ActorSystem $actorSystem
+        private readonly ActorSystem $actorSystem,
     ) {
     }
 
@@ -28,8 +25,9 @@ class GuardiansValue
             return $this->guardians[$key]->getRef();
         }
 
-        $guardian = $this->makeGuardian($strategy);
+        $guardian              = $this->makeGuardian($strategy);
         $this->guardians[$key] = $guardian;
+
         return $guardian->getRef();
     }
 
@@ -40,28 +38,27 @@ class GuardiansValue
             pid: null,
             strategy: $strategy,
         );
-        $id = $this->actorSystem->getProcessRegistry()->nextId();
-        $pid = $this->actorSystem->getProcessRegistry()->add($ref, "guardian" . $id);
+        $id  = $this->actorSystem->getProcessRegistry()->nextId();
+        $pid = $this->actorSystem->getProcessRegistry()->add($ref, 'guardian' . $id);
 
-        if (!$pid->isAdded()) {
+        if (! $pid->isAdded()) {
             $this->actorSystem->getLogger()->error(
-                "Failed to register guardian process",
-                ['pid' => $pid->getRef()]
+                'Failed to register guardian process',
+                ['pid' => $pid->getRef()],
             );
         }
+
         $ref->setRef($pid->getRef());
+
         return $ref;
     }
 
     private function getKeyForStrategy(
-        SupervisorStrategyInterface $strategy
+        SupervisorStrategyInterface $strategy,
     ): string {
         return spl_object_hash($strategy);
     }
 
-    /**
-     * @return ActorSystem
-     */
     public function getActorSystem(): ActorSystem
     {
         return $this->actorSystem;

@@ -11,9 +11,13 @@ use Phluxor\Persistence\Sqlite\Connection;
 use Phluxor\Persistence\Sqlite\DefaultSchema;
 use Phluxor\Persistence\Sqlite\SqliteProvider;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 use Test\Persistence\ProtoBuf\UserCreated;
 
+use function realpath;
 use function Swoole\Coroutine\run;
+
+use const DIRECTORY_SEPARATOR;
 
 class SqliteProviderTest extends TestCase
 {
@@ -21,8 +25,8 @@ class SqliteProviderTest extends TestCase
 
     public function tearDown(): void
     {
-        run(function () {
-            go(function () {
+        run(function (): void {
+            go(function (): void {
                 $path = $this->sqlitePath();
                 $conn = new PDO("sqlite:$path");
                 $conn->exec('DELETE FROM journals;');
@@ -34,19 +38,20 @@ class SqliteProviderTest extends TestCase
 
     public function testPersistEvent(): void
     {
-        run(function () {
-            go(function () {
+        run(function (): void {
+            go(function (): void {
                 $provider = $this->sqliteProvider();
-                $event = new UserCreated([
+                $event    = new UserCreated([
                     'userID' => 'test',
                     'userName' => 'test',
                     'email' => '',
                 ]);
-                for($i = 0; $i < 400; $i++) {
+                for ($i = 0; $i < 400; $i++) {
                     $provider->persistenceEvent('user', $i, $event);
                 }
+
                 $processed = false;
-                $provider->getEvents('user', 1, 4, function (Message $e) use (&$processed) {
+                $provider->getEvents('user', 1, 4, function (Message $e) use (&$processed): void {
                     $this->assertInstanceOf(UserCreated::class, $e);
                     $this->assertSame('test', $e->getUserName());
                     $this->assertSame('test', $e->getUserID());
@@ -55,7 +60,7 @@ class SqliteProviderTest extends TestCase
                 });
                 $this->assertTrue($processed);
                 $processed = false;
-                $provider->getEvents('user', 399, 400, function (Message $e) use (&$processed) {
+                $provider->getEvents('user', 399, 400, function (Message $e) use (&$processed): void {
                     $this->assertInstanceOf(UserCreated::class, $e);
                     $this->assertSame('test', $e->getUserName());
                     $this->assertSame('test', $e->getUserID());
@@ -69,10 +74,10 @@ class SqliteProviderTest extends TestCase
 
     public function testPersistSnapshot(): void
     {
-        run(function () {
-            go(function () {
+        run(function (): void {
+            go(function (): void {
                 $provider = $this->sqliteProvider();
-                $event = new UserCreated([
+                $event    = new UserCreated([
                     'userID' => 'test',
                     'userName' => 'test',
                     'email' => '',
@@ -87,7 +92,7 @@ class SqliteProviderTest extends TestCase
                 $result = $provider->getSnapshot('1');
                 $this->assertNull($result->getSnapshot());
                 $processed = false;
-                $provider->getEvents('user', 1, 0, function (Message $e) use (&$processed) {
+                $provider->getEvents('user', 1, 0, static function (Message $e) use (&$processed): void {
                     // should not be called
                     // journal is empty
                     $processed = true;
@@ -100,20 +105,22 @@ class SqliteProviderTest extends TestCase
     private function sqlitePath(): string
     {
         $path = realpath(__DIR__ . DIRECTORY_SEPARATOR . self::SQLITE_DB_PATH);
-        if(!$path) {
-            throw new \RuntimeException();
+        if (! $path) {
+            throw new RuntimeException();
         }
+
         return $path;
     }
 
     private function sqliteProvider(): SqliteProvider
     {
         $conn = new Connection($this->sqlitePath());
+
         return new SqliteProvider(
             $conn->proxy(),
             new DefaultSchema(),
             3,
-            ActorSystem::create()->getLogger()
+            ActorSystem::create()->getLogger(),
         );
     }
 }

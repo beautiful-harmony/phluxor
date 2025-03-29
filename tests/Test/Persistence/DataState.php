@@ -10,6 +10,8 @@ use Phluxor\Persistence\ProviderStateInterface;
 use Test\Persistence\ProtoBuf\TestMessage;
 use Test\Persistence\ProtoBuf\TestSnapshot;
 
+use function count;
+
 class DataState implements ProviderInterface
 {
     private ProviderStateInterface $state;
@@ -26,17 +28,19 @@ class DataState implements ProviderInterface
             $this->state->persistenceEvent(
                 'test.actor',
                 $i,
-                new TestMessage(['message' => $state[$i]])
+                new TestMessage(['message' => $state[$i]]),
             );
         }
+
         if ($lastSnapshot < count($state)) {
             $snapshot = $state[$lastSnapshot];
             $this->state->persistenceSnapshot(
                 'test.actor',
                 $lastSnapshot,
-                new TestSnapshot(['message' => $snapshot])
+                new TestSnapshot(['message' => $snapshot]),
             );
         }
+
         return $this->state;
     }
 

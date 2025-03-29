@@ -18,19 +18,14 @@ use RuntimeException;
 
 trait Mixin
 {
-    /** @var int */
     private int $eventIndex = 0;
 
-    /** @var bool */
     private bool $recovering = true;
 
-    /** @var string */
     private string $name = '';
 
-    /** @var ReceiverPartInterface */
     private ReceiverPartInterface $receiver;
 
-    /** @var ProviderStateInterface|null */
     private ProviderStateInterface|null $providerState = null;
 
     public function recovering(): bool
@@ -38,47 +33,45 @@ trait Mixin
         return $this->recovering;
     }
 
-    /**
-     * @param ProviderInterface $provider
-     * @param ContextInterface|ReceiverInterface $context
-     * @return void
-     */
     public function init(
         ProviderInterface $provider,
-        ContextInterface|ReceiverInterface $context
+        ContextInterface|ReceiverInterface $context,
     ): void {
-        if ($this->providerState == null) {
+        if ($this->providerState === null) {
             $this->providerState = $provider->getState();
         }
+
         $receiver = $context;
-        $name = $context->self()?->protobufPid()->getId() ?? '';
+        $name     = $context->self()?->protobufPid()->getId() ?? '';
         if ($name === '') {
             throw new RuntimeException('Name is empty');
         }
+
         $this->name = $name;
         $this->providerState->restart();
         $this->receiver = $receiver;
-        $result = $this->providerState->getSnapshot($this->name());
+        $result         = $this->providerState->getSnapshot($this->name());
         if ($result->isOk()) {
             $this->eventIndex = $result->getEventIndex();
-            $messageEnvelope = new MessageEnvelope(header: null, message: $result->getSnapshot());
+            $messageEnvelope  = new MessageEnvelope(header: null, message: $result->getSnapshot());
             $this->receiver->receive($messageEnvelope);
             $offerSnapshot = new OfferSnapshot($result->getSnapshot());
             $this->receiveRecover($offerSnapshot);
         }
+
         $this->providerState->getEvents(
             $this->name(),
             $this->eventIndex,
             0,
-            function (mixed $event) use ($receiver) {
+            function (mixed $event): void {
                 $messageEnvelope = new MessageEnvelope(header: null, message: $event);
                 $this->receiver->receive($messageEnvelope);
                 $this->receiveRecover($messageEnvelope->getMessage());
                 $this->eventIndex++;
-            }
+            },
         );
         $this->recovering = false;
-        $messageEnvelope = new MessageEnvelope(header: null, message: new ReplayCompleted());
+        $messageEnvelope  = new MessageEnvelope(header: null, message: new ReplayCompleted());
         $this->receiver->receive($messageEnvelope);
         $this->receiveRecover($messageEnvelope->getMessage());
     }
@@ -88,19 +81,21 @@ trait Mixin
         $this->providerState?->persistenceEvent($this->name(), $this->eventIndex, $message);
         if ($this->eventIndex % $this->providerState?->getSnapshotInterval() === 0) {
             $envelope = new MessageEnvelope(header: null, message: new RequestSnapshot());
-            if($this->receiver instanceof ActorContext) {
+            if ($this->receiver instanceof ActorContext) {
                 $sender = $this->receiver->sender();
                 // if the sender is set in the context, do not rewrite the sender
                 if ($sender instanceof Ref) {
                     $envelope = new MessageEnvelope(
                         header: null,
                         message: new RequestSnapshot(),
-                        sender: $sender
+                        sender: $sender,
                     );
                 }
-            };
+            }
+
             $this->receiver->receive($envelope);
         }
+
         $this->eventIndex++;
     }
 
@@ -114,12 +109,8 @@ trait Mixin
         return $this->name;
     }
 
-    /**
-     * @param mixed $message
-     * @return void
-     */
     public function receiveRecover(
-        mixed $message
+        mixed $message,
     ): void {
         // Implement this method
     }

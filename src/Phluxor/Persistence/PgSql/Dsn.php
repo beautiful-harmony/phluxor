@@ -7,12 +7,7 @@ namespace Phluxor\Persistence\PgSql;
 readonly class Dsn
 {
     /**
-     * @param string $host
-     * @param int $port
-     * @param string $database
-     * @param string $username
-     * @param string $password
-     * @param string $sslMode choice of 'disable', 'allow', 'prefer', 'require', 'verify-ca', 'verify-full'
+     * @param string               $sslMode choice of 'disable', 'allow', 'prefer', 'require', 'verify-ca', 'verify-full'
      * @param array<string, mixed> $options
      */
     public function __construct(

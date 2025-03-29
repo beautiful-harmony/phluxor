@@ -6,11 +6,8 @@ namespace Phluxor\Router\Message;
 
 final readonly class Broadcast
 {
-    /**
-     * @param mixed $message
-     */
     public function __construct(
-        private mixed $message
+        private mixed $message,
     ) {
     }
 

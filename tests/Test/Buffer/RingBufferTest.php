@@ -15,14 +15,14 @@ class RingBufferTest extends TestCase
     public function testReplaceBufferUpdatesBufferAndMod(): void
     {
         $initialSize = 4;
-        $ringBuffer = new RingBuffer($initialSize);
+        $ringBuffer  = new RingBuffer($initialSize);
 
         $newBuffer = [1, 2, 3, 4, 5];
-        $newMod = 5;
+        $newMod    = 5;
         $ringBuffer->replaceBuffer($newBuffer, $newMod);
 
-        $this->assertSame($newBuffer, $ringBuffer->getBuffer(), "Buffer should be updated to the new buffer.");
-        $this->assertSame($newMod, $ringBuffer->getMod(), "Mod value should be updated to the new mod.");
+        $this->assertSame($newBuffer, $ringBuffer->getBuffer(), 'Buffer should be updated to the new buffer.');
+        $this->assertSame($newMod, $ringBuffer->getMod(), 'Mod value should be updated to the new mod.');
     }
 
     /**
@@ -33,15 +33,15 @@ class RingBufferTest extends TestCase
         $ringBuffer = new RingBuffer(3);
 
         $newBuffer = [];
-        $newMod = 0;
+        $newMod    = 0;
         $ringBuffer->replaceBuffer($newBuffer, $newMod);
 
         $this->assertSame(
             $newBuffer,
             $ringBuffer->getBuffer(),
-            "Buffer should allow replacement with an empty buffer."
+            'Buffer should allow replacement with an empty buffer.',
         );
-        $this->assertSame($newMod, $ringBuffer->getMod(), "Mod value should be updated correctly for an empty buffer.");
+        $this->assertSame($newMod, $ringBuffer->getMod(), 'Mod value should be updated correctly for an empty buffer.');
     }
 
     /**
@@ -52,13 +52,13 @@ class RingBufferTest extends TestCase
         $ringBuffer = new RingBuffer(4, head: 1, tail: 2);
 
         $newBuffer = [10, 20, 30];
-        $newMod = 3;
+        $newMod    = 3;
         $ringBuffer->replaceBuffer($newBuffer, $newMod);
 
-        $this->assertSame($newBuffer, $ringBuffer->getBuffer(), "Buffer should be replaced correctly.");
-        $this->assertSame($newMod, $ringBuffer->getMod(), "Mod value should be replaced correctly.");
-        $this->assertSame(1, $ringBuffer->getHead(), "Head value should remain unchanged.");
-        $this->assertSame(2, $ringBuffer->getTail(), "Tail value should remain unchanged.");
+        $this->assertSame($newBuffer, $ringBuffer->getBuffer(), 'Buffer should be replaced correctly.');
+        $this->assertSame($newMod, $ringBuffer->getMod(), 'Mod value should be replaced correctly.');
+        $this->assertSame(1, $ringBuffer->getHead(), 'Head value should remain unchanged.');
+        $this->assertSame(2, $ringBuffer->getTail(), 'Tail value should remain unchanged.');
     }
 
     /**
@@ -69,14 +69,14 @@ class RingBufferTest extends TestCase
         $ringBuffer = new RingBuffer(5);
 
         $newBuffer = [null, null, null];
-        $newMod = 3;
+        $newMod    = 3;
         $ringBuffer->replaceBuffer($newBuffer, $newMod);
 
         $this->assertSame(
             $newBuffer,
             $ringBuffer->getBuffer(),
-            "Buffer should be replaced correctly with null-like values."
+            'Buffer should be replaced correctly with null-like values.',
         );
-        $this->assertSame($newMod, $ringBuffer->getMod(), "Mod value should be updated correctly.");
+        $this->assertSame($newMod, $ringBuffer->getMod(), 'Mod value should be updated correctly.');
     }
 }

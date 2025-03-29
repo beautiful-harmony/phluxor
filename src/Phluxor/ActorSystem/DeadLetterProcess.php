@@ -10,20 +10,19 @@ use Phluxor\ActorSystem\ProtoBuf\Stop;
 use Phluxor\Metrics\ActorMetrics;
 use Phluxor\Metrics\PhluxorMetrics;
 
+use function get_debug_type;
+
 readonly class DeadLetterProcess implements ProcessInterface
 {
     use ActorSystem\Metrics\MetricsSystemTrait;
 
-    /**
-     * @param ActorSystem $actorSystem
-     */
     public function __construct(
-        private ActorSystem $actorSystem
+        private ActorSystem $actorSystem,
     ) {
         $this->initialize();
     }
 
-    public function sendUserMessage(?Ref $pid, mixed $message): void
+    public function sendUserMessage(Ref|null $pid, mixed $message): void
     {
         $metricsSystem = $this->enabledMetricsSystem($this->actorSystem);
         if ($metricsSystem) {
@@ -35,17 +34,18 @@ readonly class DeadLetterProcess implements ProcessInterface
                         Attributes::create([
                             'address' => $this->actorSystem->address(),
                             'messagetype' => get_debug_type($message),
-                        ])
+                        ]),
                     );
             }
         }
+
         $m = ActorSystem\Message\MessageEnvelope::wrapEnvelope($message);
         $this->actorSystem->getEventStream()?->publish(
             new DeadLetterEvent(
                 $pid,
                 $m->getMessage(),
-                $m->getSender()
-            )
+                $m->getSender(),
+            ),
         );
     }
 
@@ -55,8 +55,8 @@ readonly class DeadLetterProcess implements ProcessInterface
             new DeadLetterEvent(
                 $pid,
                 $message,
-                null
-            )
+                null,
+            ),
         );
     }
 
@@ -70,49 +70,62 @@ readonly class DeadLetterProcess implements ProcessInterface
         $throttle = new Throttle(
             $this->actorSystem->config()->deadLetterThrottleCount(),
             $this->actorSystem->config()->deadLetterThrottleInterval(),
-            function (int $i) {
-                $this->actorSystem->getLogger()->info("deadletter", ["throttled" => $i]);
-            }
+            function (int $i): void {
+                $this->actorSystem->getLogger()->info('deadletter', ['throttled' => $i]);
+            },
         );
-        $this->actorSystem->getProcessRegistry()->add($this, "deadletter");
-        $this->actorSystem->getEventStream()?->subscribe(function (mixed $message) use ($throttle) {
-            if ($message instanceof DeadLetterEvent) {
-                if (!$message->isNoSender()) {
-                    $this->actorSystem->root()->send(
-                        $message->sender,
-                        new ActorSystem\ProtoBuf\DeadLetterResponse()
-                    );
-                }
-                if ($this->actorSystem->config()->deadLetterRequestLogging() && $message->isNoSender()) {
-                    if ($throttle->shouldThrottle() == Valve::Open) {
-                        $this->actorSystem->getLogger()->info(
-                            "deadletter",
-                            [
-                                "message" => $message->message,
-                                "sender" => (string) $message->sender,
-                                "pid" => (string) $message->ref
-                            ]
-                        );
-                    }
-                }
+        $this->actorSystem->getProcessRegistry()->add($this, 'deadletter');
+        $this->actorSystem->getEventStream()?->subscribe(function (mixed $message) use ($throttle): void {
+            if (! ($message instanceof DeadLetterEvent)) {
+                return;
             }
+
+            if (! $message->isNoSender()) {
+                $this->actorSystem->root()->send(
+                    $message->sender,
+                    new ActorSystem\ProtoBuf\DeadLetterResponse(),
+                );
+            }
+
+            if (! $this->actorSystem->config()->deadLetterRequestLogging() || ! $message->isNoSender()) {
+                return;
+            }
+
+            if ($throttle->shouldThrottle() !== Valve::Open) {
+                return;
+            }
+
+            $this->actorSystem->getLogger()->info(
+                'deadletter',
+                [
+                    'message' => $message->message,
+                    'sender' => (string) $message->sender,
+                    'pid' => (string) $message->ref,
+                ],
+            );
         });
-        $this->actorSystem->getEventStream()?->subscribe(function (mixed $message) {
-            if ($message instanceof DeadLetterEvent) {
-                $m = $message->message;
-                if ($m instanceof ActorSystem\ProtoBuf\Watch) {
-                    if ($m->getWatcher() != null) {
-                        $pid = new Ref($m->getWatcher());
-                        $pid->sendSystemMessage(
-                            $this->actorSystem,
-                            new ActorSystem\ProtoBuf\Terminated([
-                                "who" => $message->ref,
-                                'why' => ActorSystem\ProtoBuf\TerminatedReason::NotFound
-                            ])
-                        );
-                    }
-                }
+        $this->actorSystem->getEventStream()?->subscribe(function (mixed $message): void {
+            if (! ($message instanceof DeadLetterEvent)) {
+                return;
             }
+
+            $m = $message->message;
+            if (! ($m instanceof ActorSystem\ProtoBuf\Watch)) {
+                return;
+            }
+
+            if ($m->getWatcher() === null) {
+                return;
+            }
+
+            $pid = new Ref($m->getWatcher());
+            $pid->sendSystemMessage(
+                $this->actorSystem,
+                new ActorSystem\ProtoBuf\Terminated([
+                    'who' => $message->ref,
+                    'why' => ActorSystem\ProtoBuf\TerminatedReason::NotFound,
+                ]),
+            );
         });
     }
 }

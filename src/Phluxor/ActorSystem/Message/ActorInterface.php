@@ -12,7 +12,6 @@ interface ActorInterface
      * Receives a context.
      *
      * @param ContextInterface $context The context to receive.
-     * @return void
      */
     public function receive(ContextInterface $context): void;
 }

@@ -7,19 +7,18 @@ namespace Phluxor\ActorSystem\Child;
 use DateInterval;
 use DateTimeImmutable;
 
+use function count;
+
 class RestartStatistics
 {
-    /**
-     * @param DateTimeImmutable[] $failureTimes
-     */
+    /** @param DateTimeImmutable[] $failureTimes */
     public function __construct(
-        private array $failureTimes = []
+        private array $failureTimes = [],
     ) {
     }
 
     /**
      * returns failure count
-     * @return int
      */
     public function failureCount(): int
     {
@@ -28,7 +27,6 @@ class RestartStatistics
 
     /**
      * increases the associated actors' failure count
-     * @return void
      */
     public function fail(): void
     {
@@ -37,7 +35,6 @@ class RestartStatistics
 
     /**
      * the associated actors' failure count
-     * @return void
      */
     public function reset(): void
     {
@@ -46,8 +43,6 @@ class RestartStatistics
 
     /**
      * returns number of failures within a given duration
-     * @param DateInterval $withinDuration
-     * @return int
      */
     public function numberOfFailures(DateInterval $withinDuration): int
     {
@@ -55,21 +50,19 @@ class RestartStatistics
             return count($this->failureTimes);
         }
 
-        $num = 0;
+        $num      = 0;
         $currTime = new DateTimeImmutable();
         foreach ($this->failureTimes as $time) {
-            if ($currTime->getTimestamp() - $time->getTimestamp() < $withinDuration->s) {
-                $num++;
+            if ($currTime->getTimestamp() - $time->getTimestamp() >= $withinDuration->s) {
+                continue;
             }
+
+            $num++;
         }
 
         return $num;
     }
 
-    /**
-     * @param DateTimeImmutable $time
-     * @return void
-     */
     public function append(DateTimeImmutable $time): void
     {
         $this->failureTimes[] = $time;

@@ -13,12 +13,10 @@ class TypedChannel
 {
     private Channel $channel;
     private Ref $ref;
-    private ActorSystem $actorSystem;
 
     /**
-     * @param ActorSystem $actorSystem
      * @param Closure(mixed): bool $specification
-     * @param int $bufferSize
+     * @param int                  $bufferSize
      * <code>
      *     $channel = new TypedChannel(
      *         $actorSystem,
@@ -27,18 +25,16 @@ class TypedChannel
      * </code>
      */
     public function __construct(
-        ActorSystem $actorSystem,
+        private ActorSystem $actorSystem,
         private readonly Closure $specification,
-        private readonly int $bufferSize = 1
+        private readonly int $bufferSize = 1,
     ) {
         $this->channel = new Channel($this->bufferSize);
-        $this->actorSystem = $actorSystem;
-        $this->ref = $this->actorSystem->root()->spawn($this->createProps());
+        $this->ref     = $this->actorSystem->root()->spawn($this->createProps());
     }
 
     /**
      * Send a message to the channel
-     * @return mixed
      */
     public function result(): mixed
     {
@@ -47,7 +43,6 @@ class TypedChannel
 
     /**
      * actor reference
-     * @return Ref
      */
     public function getRef(): Ref
     {
@@ -57,7 +52,6 @@ class TypedChannel
     /**
      * Close the channel
      * call this method when you want to close the channel
-     * @return void
      */
     public function close(): void
     {
@@ -67,8 +61,6 @@ class TypedChannel
 
     /**
      * Check if the message is defined or not
-     * @param mixed $msg
-     * @return bool
      */
     private function isDefinedMessage(mixed $msg): bool
     {
@@ -82,6 +74,7 @@ class TypedChannel
                 return true;
             }
         }
+
         return false;
     }
 
@@ -89,19 +82,21 @@ class TypedChannel
     {
         return ActorSystem\Props::fromFunction(
             new ActorSystem\Message\ReceiveFunction(
-                function (ActorSystem\Context\ContextInterface $context) {
-                    $msg = $context->message();
+                function (ActorSystem\Context\ContextInterface $context): void {
+                    $msg           = $context->message();
                     $specification = $this->specification;
                     switch (true) {
                         // is defined message or not
                         case $this->isDefinedMessage($msg):
                             return;
+
                         case $specification($msg):
                             $this->channel->push($msg);
+
                             return;
                     }
-                }
-            )
+                },
+            ),
         );
     }
 }

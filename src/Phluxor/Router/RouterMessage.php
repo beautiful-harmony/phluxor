@@ -13,13 +13,10 @@ use Phluxor\Router\ProtoBuf\RemoveRoutee;
 readonly class RouterMessage
 {
     public function __construct(
-        private mixed $o
+        private mixed $o,
     ) {
     }
 
-    /**
-     * @return bool
-     */
     public function isManagementMessage(): bool
     {
         return match (true) {

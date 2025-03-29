@@ -16,28 +16,28 @@ use Phluxor\Metrics\PhluxorMetrics;
 use Phluxor\Value\ContextExtensionId;
 use Phluxor\Value\ExtensionInterface;
 
+use function get_class;
+
 /**
  * The metrics extension.
  */
 class Metrics implements ExtensionInterface
 {
     private ContextExtensionId $extensionId;
-    private ?PhluxorMetrics $metrics;
+    private PhluxorMetrics|null $metrics;
     private bool $enabled = false;
 
-    /**
-     * @param ActorSystem $actorSystem
-     * @param MeterProviderInterface|null $meterProvider
-     */
     public function __construct(
         ActorSystem $actorSystem,
-        ?MeterProviderInterface $meterProvider = null
+        MeterProviderInterface|null $meterProvider = null,
     ) {
         $this->extensionId = new ContextExtensionId();
-        if ($meterProvider !== null) {
-            $this->metrics = new PhluxorMetrics($actorSystem->getLogger());
-            $this->enabled = true;
+        if ($meterProvider === null) {
+            return;
         }
+
+        $this->metrics = new PhluxorMetrics($actorSystem->getLogger());
+        $this->enabled = true;
     }
 
     public function isEnabled(): bool
@@ -50,10 +50,7 @@ class Metrics implements ExtensionInterface
         return $this->extensionId;
     }
 
-    /**
-     * @param Closure(ObserverInterface): void $closure
-     * @return void
-     */
+    /** @param Closure(ObserverInterface): void $closure */
     public function prepareMailboxLengthGauge(Closure $closure): void
     {
         $meter = Globals::meterProvider()->getMeter(ActorMetrics::METRICS_NAME);
@@ -64,17 +61,13 @@ class Metrics implements ExtensionInterface
                     '1',
                     'actor mailbox length',
                     [],
-                    callbacks: $closure
-                )
+                    callbacks: $closure,
+                ),
             );
     }
 
-    /**
-     * @param Context\ContextInterface $context
-     * @return AttributesInterface
-     */
     public function commonLabels(
-        ActorSystem\Context\ContextInterface $context
+        ActorSystem\Context\ContextInterface $context,
     ): AttributesInterface {
         return Attributes::create([
             'address' => $context->actorSystem()->address(),
@@ -82,7 +75,7 @@ class Metrics implements ExtensionInterface
         ]);
     }
 
-    public function metrics(): ?PhluxorMetrics
+    public function metrics(): PhluxorMetrics|null
     {
         return $this->metrics;
     }

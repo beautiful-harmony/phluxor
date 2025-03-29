@@ -9,29 +9,17 @@ use Google\Protobuf\Internal\Message;
 
 interface EventStoreInterface
 {
-    /**
-     * @param string $actorName
-     * @param int $eventIndexStart
-     * @param int $eventIndexEnd
-     * @param Closure(mixed): void $callback
-     * @return void
-     */
+    /** @param Closure(mixed): void $callback */
     public function getEvents(
         string $actorName,
         int $eventIndexStart,
         int $eventIndexEnd,
-        Closure $callback
+        Closure $callback,
     ): void;
 
-    /**
-     * @param string $actorName
-     * @param int $eventIndex
-     * @param Message $event
-     * @return void
-     */
     public function persistenceEvent(
         string $actorName,
         int $eventIndex,
-        Message $event
+        Message $event,
     ): void;
 }

@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Test\ActorSystem;
 
 use Phluxor\ActorSystem\ConcurrentMapShared;
-use PHPUnit\Framework\TestCase;
 use Phluxor\ActorSystem\SliceMap;
+use PHPUnit\Framework\TestCase;
 
 use function go;
 use function Swoole\Coroutine\run;
@@ -15,10 +15,10 @@ class SliceMapTest extends TestCase
 {
     public function testSliceMapShared(): void
     {
-        run(function () {
-            go(function () {
+        run(function (): void {
+            go(function (): void {
                 $map = new SliceMap();
-                $cm = $map->getBucket('a');
+                $cm  = $map->getBucket('a');
                 $this->assertInstanceOf(ConcurrentMapShared::class, $cm->getShard('a'));
             });
         });
@@ -26,10 +26,10 @@ class SliceMapTest extends TestCase
 
     public function testSliceMapSetIfAbsent(): void
     {
-        run(function () {
-            go(function () {
+        run(function (): void {
+            go(function (): void {
                 $map = new SliceMap();
-                $cm = $map->getBucket('a');
+                $cm  = $map->getBucket('a');
                 $this->assertTrue($cm->setIfAbsent('a', 'b'));
                 $this->assertFalse($cm->setIfAbsent('a', 'b'));
             });

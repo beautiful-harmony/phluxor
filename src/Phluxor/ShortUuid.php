@@ -6,17 +6,21 @@ namespace Phluxor;
 
 use Brick\Math\BigInteger;
 use Brick\Math\Exception\DivisionByZeroException;
-use Brick\Math\RoundingMode;
 use Brick\Math\Exception\MathException;
+use Brick\Math\RoundingMode;
+use InvalidArgumentException;
 use Ramsey\Uuid\Type\Hexadecimal;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
 
+use function array_search;
+use function count;
+use function str_split;
+use function strrev;
+
 class ShortUuid
 {
-    /**
-     * @var array|string[]
-     */
+    /** @var array|string[] */
     private array $alphabet = [
         '2',
         '3',
@@ -79,15 +83,15 @@ class ShortUuid
 
     private int $alphabetLength = 57;
 
-    /**
-     * @param string[]|null $alphabet
-     */
-    public function __construct(?array $alphabet = null)
+    /** @param string[]|null $alphabet */
+    public function __construct(array|null $alphabet = null)
     {
-        if (null !== $alphabet) {
-            $this->alphabet = $alphabet;
-            $this->alphabetLength = count($alphabet);
+        if ($alphabet === null) {
+            return;
         }
+
+        $this->alphabet       = $alphabet;
+        $this->alphabetLength = count($alphabet);
     }
 
     /**
@@ -95,11 +99,12 @@ class ShortUuid
      * @throws DivisionByZeroException
      */
     public static function uuid1(
-        int|null|Hexadecimal|string $node = null,
-        ?int $clockSeq = null
+        int|Hexadecimal|string|null $node = null,
+        int|null $clockSeq = null,
     ): string {
-        $uuid = Uuid::uuid1($node, $clockSeq);
+        $uuid      = Uuid::uuid1($node, $clockSeq);
         $shortUuid = new self();
+
         return $shortUuid->encode($uuid);
     }
 
@@ -109,8 +114,9 @@ class ShortUuid
      */
     public static function uuid4(): string
     {
-        $uuid = Uuid::uuid4();
+        $uuid      = Uuid::uuid4();
         $shortUuid = new self();
+
         return $shortUuid->encode($uuid);
     }
 
@@ -120,8 +126,9 @@ class ShortUuid
      */
     public static function uuid5(string $ns, string $name): string
     {
-        $uuid = Uuid::uuid5($ns, $name);
+        $uuid      = Uuid::uuid5($ns, $name);
         $shortUuid = new self();
+
         return $shortUuid->encode($uuid);
     }
 
@@ -131,16 +138,15 @@ class ShortUuid
      */
     public function encode(UuidInterface $uuid): string
     {
-        $uuidInteger = BigInteger::of((string)$uuid->getInteger());
+        $uuidInteger = BigInteger::of((string) $uuid->getInteger());
+
         return $this->numToString($uuidInteger);
     }
 
-    /**
-     * @throws MathException
-     */
+    /** @throws MathException */
     public function decode(string $shortUuid): UuidInterface
     {
-        return Uuid::fromInteger((string)$this->stringToNum($shortUuid));
+        return Uuid::fromInteger((string) $this->stringToNum($shortUuid));
     }
 
     /**
@@ -152,16 +158,15 @@ class ShortUuid
         $output = '';
         while ($number->isPositive()) {
             $previousNumber = clone $number;
-            $number = $number->dividedBy($this->alphabetLength, RoundingMode::DOWN);
-            $digit = $previousNumber->mod($this->alphabetLength);
-            $output .= $this->alphabet[$digit->toInt()];
+            $number         = $number->dividedBy($this->alphabetLength, RoundingMode::DOWN);
+            $digit          = $previousNumber->mod($this->alphabetLength);
+            $output        .= $this->alphabet[$digit->toInt()];
         }
+
         return $output;
     }
 
-    /**
-     * @throws MathException
-     */
+    /** @throws MathException */
     private function stringToNum(string $string): BigInteger
     {
         $number = BigInteger::of(0);
@@ -169,41 +174,35 @@ class ShortUuid
             $number = $this->updateNumber(
                 $number,
                 $this->validateCharacter($char, $this->alphabet),
-                $this->alphabetLength
+                $this->alphabetLength,
             );
         }
+
         return $number;
     }
 
-    /**
-     * @param mixed $char
-     * @param string[] $alphabet
-     * @return int|string
-     */
+    /** @param string[] $alphabet */
     private function validateCharacter(mixed $char, array $alphabet): int|string
     {
         $index = array_search($char, $alphabet);
         if ($index === false) {
-            throw new \InvalidArgumentException('Invalid character found: ' . $char);
+            throw new InvalidArgumentException('Invalid character found: ' . $char);
         }
+
         return $index;
     }
 
-    /**
-     * @throws MathException
-     */
+    /** @throws MathException */
     private function updateNumber(
         BigInteger $number,
         int|string $index,
-        int $alphabetLength
+        int $alphabetLength,
     ): BigInteger {
         return $number->multipliedBy($alphabetLength)
             ->plus($index);
     }
 
-    /**
-     * @return string[]
-     */
+    /** @return string[] */
     public function getAlphabet(): array
     {
         return $this->alphabet;

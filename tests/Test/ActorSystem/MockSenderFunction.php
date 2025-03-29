@@ -13,18 +13,16 @@ use Phluxor\ActorSystem\Ref;
 
 readonly class MockSenderFunction implements SenderFunctionInterface
 {
-    /**
-     * @param Closure(SenderInterface|ContextInterface, Ref, MessageEnvelope): void|SenderFunctionInterface $next
-     */
+    /** @param Closure(SenderInterface|ContextInterface, Ref, MessageEnvelope): void|SenderFunctionInterface $next */
     public function __construct(
-        private Closure|SenderFunctionInterface $next
+        private Closure|SenderFunctionInterface $next,
     ) {
     }
 
     public function __invoke(
         SenderInterface $context,
-        ?Ref $target,
-        MessageEnvelope $messageEnvelope
+        Ref|null $target,
+        MessageEnvelope $messageEnvelope,
     ): void {
         $next = $this->next;
         $next($context, $target, $messageEnvelope);

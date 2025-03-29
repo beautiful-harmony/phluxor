@@ -19,31 +19,31 @@ class ProcessTest extends TestCase
 
     public function testRouterSendsUserMessageToChild(): void
     {
-        run(function () {
-            go(function () {
+        run(function (): void {
+            go(function (): void {
                 $proceed = false;
-                $system = ActorSystem::create();
-                $r = $this->spawnMockProcess(
+                $system  = ActorSystem::create();
+                $r       = $this->spawnMockProcess(
                     $system,
                     'child',
                     null,
-                    function (?Ref $pid, mixed $message) use (&$proceed) {
+                    function (Ref|null $pid, mixed $message) use (&$proceed): void {
                         $proceed = true;
                         $this->assertSame('hello', $message->getMessage());
-                    }
+                    },
                 );
-                $set = new ActorSystem\RefSet($r['ref']);
-                $rs = new TestRouterState($system, $set);
-                $gr = new TestGroupRouter($system);
+                $set     = new ActorSystem\RefSet($r['ref']);
+                $rs      = new TestRouterState($system, $set);
+                $gr      = new TestGroupRouter($system);
                 $gr->setRouterState($rs);
                 $routerRef = $system->root()->spawn(
                     ActorSystem\Props::fromFunction(
                         new ActorSystem\Message\ReceiveFunction(
-                            function (ActorSystem\Context\ContextInterface $context) {
-                            }
+                            static function (ActorSystem\Context\ContextInterface $context): void {
+                            },
                         ),
-                        ActorSystem\Props::withSpawnFunc(Config::spawner($gr))
-                    )
+                        ActorSystem\Props::withSpawnFunc(Config::spawner($gr)),
+                    ),
                 );
                 $system->root()->send($routerRef, new Broadcast('hello'));
                 $system->root()->requestWithCustomSender($routerRef, 'hello', $routerRef);

@@ -10,7 +10,7 @@ class DefaultSchema implements RdbmsSchemaInterface
 {
     public function __construct(
         private string $journalTable = 'journals',
-        private string $snapshotTable = 'snapshots'
+        private string $snapshotTable = 'snapshots',
     ) {
     }
 
@@ -22,12 +22,14 @@ class DefaultSchema implements RdbmsSchemaInterface
     public function renameJournalTable(string $name): self
     {
         $this->journalTable = $name;
+
         return $this;
     }
 
     public function renameSnapshotTable(string $name): self
     {
         $this->snapshotTable = $name;
+
         return $this;
     }
 
@@ -66,28 +68,27 @@ class DefaultSchema implements RdbmsSchemaInterface
         return 'created_at';
     }
 
-    /**
-     * @return string[]
-     */
+    /** @return string[] */
     public function createTable(): array
     {
-        $tables = [
+        $tables       = [
             $this->journalTableName(),
             $this->snapshotTableName(),
         ];
         $createTables = [];
         foreach ($tables as $table) {
             $createTables[] = "CREATE TABLE `$table` (" .
-                "`" . $this->id() . "` varchar(26) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL," .
-                "`" . $this->payload() . "` blob NOT NULL," .
-                "`" . $this->sequenceNumber() . "` bigint DEFAULT NULL," .
-                "`" . $this->actorName() . "` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL," .
-                "`" . $this->created() . "` timestamp DEFAULT CURRENT_TIMESTAMP," .
-                "PRIMARY KEY (`" . $this->id() . "`)," .
-                "UNIQUE KEY `uidx_id` (`" . $this->id() . "`)," .
-                "UNIQUE KEY `uidx_names` (`" . $this->actorName() . "`,`" . $this->sequenceNumber() . "`)" .
-                ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;";
+                '`' . $this->id() . '` varchar(26) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,' .
+                '`' . $this->payload() . '` blob NOT NULL,' .
+                '`' . $this->sequenceNumber() . '` bigint DEFAULT NULL,' .
+                '`' . $this->actorName() . '` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,' .
+                '`' . $this->created() . '` timestamp DEFAULT CURRENT_TIMESTAMP,' .
+                'PRIMARY KEY (`' . $this->id() . '`),' .
+                'UNIQUE KEY `uidx_id` (`' . $this->id() . '`),' .
+                'UNIQUE KEY `uidx_names` (`' . $this->actorName() . '`,`' . $this->sequenceNumber() . '`)' .
+                ') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;';
         }
+
         return $createTables;
     }
 }

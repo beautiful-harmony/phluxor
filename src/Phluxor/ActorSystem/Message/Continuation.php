@@ -8,27 +8,19 @@ use Closure;
 
 readonly class Continuation implements SystemMessageInterface
 {
-    /**
-     * @param mixed $message
-     * @param ContinuationFunctionInterface|Closure(): void $function
-     */
+    /** @param ContinuationFunctionInterface|Closure(): void $function */
     public function __construct(
         private mixed $message,
-        private ContinuationFunctionInterface|Closure $function
+        private ContinuationFunctionInterface|Closure $function,
     ) {
     }
 
-    /**
-     * @return ContinuationFunctionInterface|Closure(): void
-     */
+    /** @return ContinuationFunctionInterface|Closure(): void */
     public function getFunction(): ContinuationFunctionInterface|Closure
     {
         return $this->function;
     }
 
-    /**
-     * @return mixed
-     */
     public function getMessage(): mixed
     {
         return $this->message;

@@ -8,7 +8,7 @@ readonly class ProcessRegistryAddResult
 {
     public function __construct(
         private Ref $pid,
-        private bool $added
+        private bool $added,
     ) {
     }
 

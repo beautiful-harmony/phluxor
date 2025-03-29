@@ -8,23 +8,13 @@ use Google\Protobuf\Internal\Message;
 
 interface SnapshotStoreInterface
 {
-    /**
-     * @param string $actorName
-     * @return SnapshotResult
-     */
     public function getSnapshot(
-        string $actorName
+        string $actorName,
     ): SnapshotResult;
 
-    /**
-     * @param string $actorName
-     * @param int $snapshotIndex
-     * @param Message $snapshot
-     * @return void
-     */
     public function persistenceSnapshot(
         string $actorName,
         int $snapshotIndex,
-        Message $snapshot
+        Message $snapshot,
     ): void;
 }

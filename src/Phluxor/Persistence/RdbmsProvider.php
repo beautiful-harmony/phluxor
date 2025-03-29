@@ -6,14 +6,16 @@ namespace Phluxor\Persistence;
 
 use Closure;
 use Google\Protobuf\Internal\Message;
-
 use PDO;
+use PDOException;
 use Psr\Log\LoggerInterface;
 use ReflectionException;
 use Swoole\Database\PDOProxy;
 use Symfony\Component\Uid\Ulid;
 
+use function implode;
 use function json_encode;
+use function sprintf;
 
 /**
  * persistence provider for mysql
@@ -24,13 +26,10 @@ readonly class RdbmsProvider implements ProviderStateInterface, ProviderInterfac
         protected PDOProxy $connection,
         protected RdbmsSchemaInterface $schema,
         protected int $snapshotInterval,
-        protected LoggerInterface $logger
+        protected LoggerInterface $logger,
     ) {
     }
 
-    /**
-     * @return string
-     */
     protected function selectColumns(): string
     {
         return implode(
@@ -40,14 +39,11 @@ readonly class RdbmsProvider implements ProviderStateInterface, ProviderInterfac
                 $this->schema->payload(),
                 $this->schema->sequenceNumber(),
                 $this->schema->actorName(),
-            ]
+            ],
         );
     }
 
-    /**
-     * @param Closure(PDOProxy): bool $callback
-     * @return void
-     */
+    /** @param Closure(PDOProxy): bool $callback */
     protected function executeTx(Closure $callback): void
     {
         $conn = $this->connection;
@@ -58,11 +54,8 @@ readonly class RdbmsProvider implements ProviderStateInterface, ProviderInterfac
     }
 
     /**
-     * @param string $actorName
-     * @param int $eventIndexStart
-     * @param int $eventIndexEnd
      * @param Closure(Message): void $callback
-     * @return void
+     *
      * @throws ReflectionException
      */
     public function getEvents(string $actorName, int $eventIndexStart, int $eventIndexEnd, Closure $callback): void
@@ -77,7 +70,7 @@ readonly class RdbmsProvider implements ProviderStateInterface, ProviderInterfac
             $this->schema->sequenceNumber(),
             $this->schema->sequenceNumber(),
         );
-        $args = [$actorName, $eventIndexStart, $eventIndexEnd];
+        $args  = [$actorName, $eventIndexStart, $eventIndexEnd];
         if ($eventIndexEnd === 0) {
             $query = sprintf(
                 'SELECT %s FROM %s WHERE %s = ? AND %s >= ? ORDER BY %s ASC',
@@ -87,8 +80,9 @@ readonly class RdbmsProvider implements ProviderStateInterface, ProviderInterfac
                 $this->schema->sequenceNumber(),
                 $this->schema->sequenceNumber(),
             );
-            $args = [$actorName, $eventIndexStart];
+            $args  = [$actorName, $eventIndexStart];
         }
+
         $stmt = $conn->prepare($query);
         $stmt->execute($args);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -99,26 +93,20 @@ readonly class RdbmsProvider implements ProviderStateInterface, ProviderInterfac
         }
     }
 
-    /**
-     * @param string $actorName
-     * @param int $eventIndex
-     * @param Message $event
-     * @return void
-     */
     public function persistenceEvent(string $actorName, int $eventIndex, Message $event): void
     {
         $msg = new \Phluxor\Persistence\Message($event);
         $this->executeTx(function (PDOProxy $conn) use ($msg, $eventIndex, $actorName) {
             try {
-                $stmt = $conn->prepare(
+                $stmt   = $conn->prepare(
                     sprintf(
                         'INSERT INTO %s (%s) VALUES (?, ?, ?, ?)',
                         $this->schema->journalTableName(),
-                        $this->selectColumns()
-                    )
+                        $this->selectColumns(),
+                    ),
                 );
                 $result = $stmt->execute([
-                    (string)(new Ulid()),
+                    (string) (new Ulid()),
                     json_encode($msg),
                     $eventIndex,
                     $actorName,
@@ -126,9 +114,11 @@ readonly class RdbmsProvider implements ProviderStateInterface, ProviderInterfac
                 if ($result === false) {
                     $this->logger->error('Failed to insert event', ['actor' => $actorName]);
                 }
+
                 return $result;
-            } catch (\PDOException $e) {
+            } catch (PDOException $e) {
                 $this->logger->error('error on persistenceEvent', ['actor' => $actorName, 'error' => $e->getMessage()]);
+
                 return false;
             }
         });
@@ -144,11 +134,7 @@ readonly class RdbmsProvider implements ProviderStateInterface, ProviderInterfac
         return $this->snapshotInterval;
     }
 
-    /**
-     * @param string $actorName
-     * @return SnapshotResult
-     * @throws ReflectionException
-     */
+    /** @throws ReflectionException */
     public function getSnapshot(string $actorName): SnapshotResult
     {
         $conn = $this->connection;
@@ -160,39 +146,36 @@ readonly class RdbmsProvider implements ProviderStateInterface, ProviderInterfac
                 $this->schema->snapshotTableName(),
                 $this->schema->actorName(),
                 $this->schema->sequenceNumber(),
-            )
+            ),
         );
         $stmt->execute([$actorName]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         if ($row === false) {
             $conn->commit();
+
             return new SnapshotResult(null, 0, false);
         }
+
         $conn->commit();
         $env = new Envelope($row['payload']);
+
         return new SnapshotResult($env->message(), $row['sequence_number'], true);
     }
 
-    /**
-     * @param string $actorName
-     * @param int $snapshotIndex
-     * @param Message $snapshot
-     * @return void
-     */
     public function persistenceSnapshot(string $actorName, int $snapshotIndex, Message $snapshot): void
     {
         $msg = new \Phluxor\Persistence\Message($snapshot);
         $this->executeTx(function (PDOProxy $conn) use ($msg, $snapshotIndex, $actorName) {
             try {
-                $stmt = $conn->prepare(
+                $stmt   = $conn->prepare(
                     sprintf(
                         'INSERT INTO %s (%s) VALUES (?, ?, ?, ?)',
                         $this->schema->snapshotTableName(),
-                        $this->selectColumns()
-                    )
+                        $this->selectColumns(),
+                    ),
                 );
                 $result = $stmt->execute([
-                    (string)(new Ulid()),
+                    (string) (new Ulid()),
                     json_encode($msg),
                     $snapshotIndex,
                     $actorName,
@@ -200,12 +183,14 @@ readonly class RdbmsProvider implements ProviderStateInterface, ProviderInterfac
                 if ($result === false) {
                     $this->logger->error('Failed to insert snapshot', ['actor' => $actorName]);
                 }
+
                 return $result;
-            } catch (\PDOException $e) {
+            } catch (PDOException $e) {
                 $this->logger->error(
                     'error on persistenceSnapshot',
-                    ['actor' => $actorName, 'error' => $e->getMessage()]
+                    ['actor' => $actorName, 'error' => $e->getMessage()],
                 );
+
                 return false;
             }
         });

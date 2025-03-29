@@ -6,12 +6,13 @@ namespace Test\Mspc;
 
 use Phluxor\Mspc\Queue;
 use PHPUnit\Framework\TestCase;
+use Swoole\Event;
 
 class QueueTest extends TestCase
 {
     public function testQueuePushPop(): void
     {
-        go(function () {
+        go(function (): void {
             $queue = new Queue();
             $queue->push(1);
             $queue->push(2);
@@ -21,12 +22,12 @@ class QueueTest extends TestCase
             $this->assertEquals(2, $queue->pop()->value());
             $this->assertEquals(3, $queue->pop()->value());
         });
-        \Swoole\Event::wait();
+        Event::wait();
     }
 
     public function testQueueIsEmpty(): void
     {
-        go(function () {
+        go(function (): void {
             $queue = new Queue();
             $this->assertTrue($queue->isEmpty());
             $queue->push(1);
@@ -34,14 +35,14 @@ class QueueTest extends TestCase
             $queue->pop();
             $this->assertTrue($queue->isEmpty());
         });
-        \Swoole\Event::wait();
+        Event::wait();
     }
 
     public function testQueuePushPopOneProducer(): void
     {
-        go(function () {
-            $queue = new Queue();
-            $producer = function () use ($queue) {
+        go(function (): void {
+            $queue    = new Queue();
+            $producer = static function () use ($queue): void {
                 $queue->push(1);
                 $queue->push(2);
                 $queue->push(3);
@@ -51,6 +52,6 @@ class QueueTest extends TestCase
             $this->assertEquals(2, $queue->pop()->value());
             $this->assertEquals(3, $queue->pop()->value());
         });
-        \Swoole\Event::wait();
+        Event::wait();
     }
 }
